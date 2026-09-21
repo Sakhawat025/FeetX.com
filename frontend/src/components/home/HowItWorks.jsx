@@ -1,72 +1,66 @@
+import { FilePlus, UserCheck, Route, MapPinned, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
+
 function HowItWorks() {
   const steps = [
-    {
-      number: "01",
-      title: "Create Delivery",
-      description:
-        "Create parcel requests with pickup, destination and delivery details."
-    },
-    {
-      number: "02",
-      title: "Assign Rider",
-      description:
-        "System recommends the most suitable rider based on availability and location."
-    },
-    {
-      number: "03",
-      title: "Optimize Route",
-      description:
-        "Generate efficient delivery routes with multiple stop optimization."
-    },
-    {
-      number: "04",
-      title: "Live Tracking",
-      description:
-        "Monitor rider movement and delivery progress in real time."
-    },
-    {
-      number: "05",
-      title: "Delivered",
-      description:
-        "Complete delivery with status update and proof of delivery."
-    }
+    { icon: FilePlus, title: "Create Delivery", description: "Create parcel requests with pickup, destination and delivery details." },
+    { icon: UserCheck, title: "Assign Rider", description: "Select the best rider based on location, availability and workload." },
+    { icon: Route, title: "Optimize Route", description: "Generate efficient routes for faster and cost-effective delivery." },
+    { icon: MapPinned, title: "Live Tracking", description: "Track rider movement and delivery progress in real time." },
+    { icon: CheckCircle, title: "Complete Delivery", description: "Confirm delivery with status update and proof of delivery." }
   ];
 
   return (
-    <section id = "how-it-works" className="bg-white py-20 px-8">
+    <section id="how-it-works" className="bg-white py-24 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-4xl font-extrabold text-gray-950">
-            How FeetX Works
-          </h2>
-          <p className="mt-4 text-gray-600">
-            From parcel creation to successful delivery,
-            everything is managed through an intelligent workflow.
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto"
+        >
+          <span className="inline-block bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-semibold">
+            Workflow
+          </span>
+          <h2 className="mt-5 text-4xl lg:text-5xl font-extrabold text-gray-950">How FeetX Works</h2>
+          <p className="mt-5 text-gray-600">
+            A simple intelligent workflow from parcel creation to successful delivery.
           </p>
-        </div>
+        </motion.div>
 
         {/* Steps */}
-        <div className="mt-14 grid md:grid-cols-5 gap-6">
-          {steps.map((step, index) => (
-            <div key={index} className="relative text-center">
-              <div className="mx-auto w-16 h-16 rounded-full bg-orange-700 text-white flex items-center justify-center text-xl font-bold">
-                {step.number}
-              </div>
+        <div className="mt-16 grid md:grid-cols-5 gap-8">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="relative text-center group"
+              >
+                {/* Connector */}
+                {index !== steps.length - 1 && (
+                  <div className="hidden md:block absolute top-8 left-[65%] w-full border-t-2 border-dashed border-orange-200"></div>
+                )}
 
-              <h3 className="mt-5 font-bold text-lg text-orange-900">
-                {step.title}
-              </h3>
+                {/* Icon */}
+                <motion.div
+                  whileHover={{ scale: 1.08 }}
+                  className="relative mx-auto w-16 h-16 rounded-2xl bg-orange-100 text-orange-700 flex items-center justify-center group-hover:bg-orange-700 group-hover:text-white transition duration-300"
+                >
+                  <Icon size={28} />
+                </motion.div>
 
-              <p className="mt-3 text-sm text-gray-600 leading-relaxed">
-                {step.description}
-              </p>
-
-              {index !== steps.length - 1 && (
-                <div className="hidden md:block absolute top-8 left-[75%] w-full border-t-2 border-dashed border-orange-300"></div>
-              )}
-            </div>
-          ))}
+                <h3 className="mt-6 text-lg font-bold text-gray-950">{step.title}</h3>
+                <p className="mt-3 text-sm text-gray-600 leading-relaxed">{step.description}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>
