@@ -2,6 +2,7 @@ import { Mail, Lock, UserCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { loginUser } from "../../services/authApi";
 
 function Login() {
   const navigate = useNavigate();
@@ -17,25 +18,26 @@ function Login() {
     setLoading(true);
 
     try {
-      const userData = {
-        id: 1,
-        name: "Demo User",
-        email,
-        role: "RIDER"
-      };
+      const response = await loginUser({ email, password });
+      const { token, user } = response;
 
-      login(userData);
+      if (token) {
+        localStorage.setItem("feetx_token", token);
+      }
 
-      if (userData.role === "ADMIN") {
+      login(user);
+
+      if (user.role === "ADMIN") {
         navigate("/admin/dashboard");
-      } else if (userData.role === "RIDER") {
+      } else if (user.role === "RIDER") {
         navigate("/rider/dashboard");
-      } else if (userData.role === "CUSTOMER") {
+      } else if (user.role === "CUSTOMER") {
         navigate("/customer/dashboard");
       }
     } catch (err) {
-      setError("Login failed");
-    } finally {
+      setError(err.response?.data?.message || "Invalid email or password");
+    } final 
+            {
       setLoading(false);
     }
   };
@@ -84,7 +86,11 @@ function Login() {
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <button disabled={loading} className="w-full bg-orange-700 text-white py-3 rounded-xl font-semibold hover:bg-orange-800 transition">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-700 text-white py-3 rounded-xl font-semibold hover:bg-orange-800 transition disabled:opacity-50"
+          >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
