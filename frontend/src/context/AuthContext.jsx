@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-
+import { getMe } from "../services/authApi";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -9,14 +9,27 @@ export function AuthProvider({ children }) {
 
     // Check existing login
     useEffect(() => {
-        const savedUser = localStorage.getItem("feetx_user");
+    const savedToken = localStorage.getItem("feetx_token");
 
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
-        }
-
+    if (savedToken) {
+        getMe()
+            .then((data) => {
+                setUser(data);
+            })
+            .catch(() => {
+                    setUser(null);
+                    setToken(null);
+                    localStorage.removeItem("feetx_token");
+                    localStorage.removeItem("feetx_user");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    } else {
         setLoading(false);
-    }, []);
+    }
+  }, []);
+
 
     // Login Function
     const login = (userData, userToken) => {
