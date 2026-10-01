@@ -1,6 +1,7 @@
 import { User, Mail, Phone, MapPin, Lock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { registerUser } from "../../services/authApi";
 
 function Register() {
   const navigate = useNavigate();
@@ -24,22 +25,29 @@ function Register() {
     setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Password does not match");
-      return;
+        setError("Password does not match");
+        return;
     }
 
     setLoading(true);
+
     try {
-      const user = { role: "CUSTOMER" };
-      if (user.role === "CUSTOMER") {
-        navigate("/customer/dashboard");
-      }
+        await registerUser({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            password: formData.password
+        });
+
+        navigate("/login");
     } catch (err) {
-      setError("Registration failed");
+        setError(err.response?.data?.message || "Registration failed");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-orange-50 flex items-center justify-center px-6 py-10">

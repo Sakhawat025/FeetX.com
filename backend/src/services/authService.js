@@ -15,7 +15,7 @@ const registerCustomer = async (data) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
+    const safeUser = await prisma.user.create({
         data: {
             name,
             email,
