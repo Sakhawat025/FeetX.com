@@ -7,11 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 enum Role {
   ADMIN
   RIDER
   CUSTOMER
 }
+
+
+enum DeliveryStatus {
+  PENDING
+  CONFIRMED
+  PICKED_UP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -21,6 +34,46 @@ model User {
   password  String
   role      Role     @default(CUSTOMER)
   status    Boolean  @default(true)
+
+  // Customer deliveries
+  customerDeliveries Delivery[] @relation("CustomerDeliveries")
+
+  // Rider assigned deliveries
+  riderDeliveries Delivery[] @relation("RiderDeliveries")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+model Delivery {
+
+  id Int @id @default(autoincrement())
+
+  trackingId String @unique
+
+  senderName String
+  receiverName String
+  receiverPhone String?
+
+  pickupAddress String
+  deliveryAddress String
+
+  parcelType String
+  parcelWeight Float?
+
+  status DeliveryStatus @default(PENDING)
+
+
+  customerId Int
+  customer User @relation("CustomerDeliveries", fields: [customerId], references: [id])
+
+
+  riderId Int?
+  rider User? @relation("RiderDeliveries", fields: [riderId], references: [id])
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
 }
