@@ -1,4 +1,5 @@
 const authService = require("../services/authService");
+const prisma = require("../config/prisma");
 
 const register = async (req, res) => {
     try {
@@ -29,7 +30,31 @@ const login = async (req, res) => {
     }
 };
 
+const getMe = async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: req.user.id
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                role: true
+            }
+        });
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    getMe
 };

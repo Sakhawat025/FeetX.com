@@ -18,29 +18,25 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await loginUser({ email, password });
-      const { token, user } = response;
+        const response = await loginUser({ email, password });
+        const { token, user } = response;
 
-      if (token) {
-        localStorage.setItem("feetx_token", token);
-      }
+        login(user, token);
 
-      login(user);
-
-      if (user.role === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else if (user.role === "RIDER") {
-        navigate("/rider/dashboard");
-      } else if (user.role === "CUSTOMER") {
-        navigate("/customer/dashboard");
-      }
+        if (user.role === "ADMIN") {
+            navigate("/admin/dashboard");
+        } else if (user.role === "RIDER") {
+            navigate("/rider/dashboard");
+        } else if (user.role === "CUSTOMER") {
+            navigate("/customer/dashboard");
+        }
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid email or password");
-    } final 
-            {
-      setLoading(false);
+        setError(err.response?.data?.message || "Invalid email or password");
+    } finally {
+        setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-orange-50 flex items-center justify-center px-6">

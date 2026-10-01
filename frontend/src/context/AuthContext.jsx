@@ -3,37 +3,46 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem("feetx_token"));
+    const [loading, setLoading] = useState(true);
 
-  // Check existing login
-  useEffect(() => {
-    const savedUser = localStorage.getItem("feetx_user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
-  }, []);
+    // Check existing login
+    useEffect(() => {
+        const savedUser = localStorage.getItem("feetx_user");
 
-  // Login Function
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("feetx_user", JSON.stringify(userData));
-  };
+        if (savedUser) {
+            setUser(JSON.parse(savedUser));
+        }
 
-  // Logout Function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("feetx_user");
-  };
+        setLoading(false);
+    }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    // Login Function
+    const login = (userData, userToken) => {
+        setUser(userData);
+        setToken(userToken);
+
+        localStorage.setItem("feetx_user", JSON.stringify(userData));
+        localStorage.setItem("feetx_token", userToken);
+    };
+
+    // Logout Function
+    const logout = () => {
+        setUser(null);
+        setToken(null);
+
+        localStorage.removeItem("feetx_user");
+        localStorage.removeItem("feetx_token");
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 }
