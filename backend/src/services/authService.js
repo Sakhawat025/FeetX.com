@@ -54,7 +54,8 @@ const loginUser = async (email, password) => {
         }
     );
 
-    return { safeUser, token };
+    const { password:removePassword, ...safeUser } = user;
+    return { user:safeUser, token };
 };
 
 module.exports = {

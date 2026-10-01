@@ -13,6 +13,11 @@ const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
 
+// Admin Routes
+const adminRoutes = require("./routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
+
+
 // Test Route
 app.get("/", (req, res) => {
   res.json({
