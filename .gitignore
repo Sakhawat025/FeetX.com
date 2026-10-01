@@ -18,3 +18,9 @@ backend/node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+.agents
+.claude
+.cursor
+.devin
+node_modules
