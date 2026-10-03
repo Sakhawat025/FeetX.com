@@ -9,50 +9,45 @@ import CustomerHeader from "./components/CustomerHeader";
 import StatCard from "./components/StatCard";
 import TrackingMap from "./components/TrackingMap";
 import ParcelTimeline from "./components/ParcelTimeline";
+import { useEffect, useState } from "react";
+import { getCustomerDashboard } from "../../services/deliveryApi";
 
 function CustomerDashboard() {
-  const recentDeliveries = [
-    {
-      id: "#PKG10244",
-      date: "18 May 2025",
-      to: "Uttara, Dhaka",
-      status: "Delivered",
-      rider: "Karim Ahmed",
-    },
-    {
-      id: "#PKG10243",
-      date: "17 May 2025",
-      to: "Dhanmondi, Dhaka",
-      status: "On the Way",
-      rider: "Rashed Ali",
-    },
-    {
-      id: "#PKG10242",
-      date: "17 May 2025",
-      to: "Mohammadpur, Dhaka",
-      status: "Pending",
-      rider: "-",
-    },
-    {
-      id: "#PKG10241",
-      date: "16 May 2025",
-      to: "Farmgate, Dhaka",
-      status: "Delivered",
-      rider: "Karim Ahmed",
-    },
-  ];
+  const [dashboardData, setDashboardData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+    const loadDashboard = async () => {
+        try {
+        setLoading(true);
+        setError("");
+        const data = await getCustomerDashboard();
+        setDashboardData(data);
+        } catch (err) {
+        console.error("Dashboard API error:", err);
+        setError(err.response?.data?.message || "Failed to load dashboard");
+        } finally {
+        setLoading(false);
+        }
+    };
+    loadDashboard();
+    }, []);
+
+    const recentDeliveries = dashboardData?.recentDeliveries || [];
+
 
   const statusClass = (status) => {
     switch (status) {
-      case "Delivered":
+      case "DELIVERED":
         return "bg-green-50 text-green-700 border-green-100";
       case "On the Way":
         return "bg-yellow-50 text-yellow-700 border-yellow-100";
-      case "Pending":
+      case "PENDING":
         return "bg-gray-50 text-gray-600 border-gray-200";
-      case "Out for Delivery":
+      case "OUT_FOR_DELIVERY":
         return "bg-blue-50 text-blue-700 border-blue-100";
-      case "Cancelled":
+      case "CANCELLED":
         return "bg-red-50 text-red-700 border-red-100";
       default:
         return "bg-gray-50 text-gray-600 border-gray-200";
@@ -74,7 +69,7 @@ function CustomerDashboard() {
               <StatCard
                 icon={Box}
                 title="Active Parcel"
-                value="01"
+                value={String(dashboardData?.stats?.active ?? 0).padStart(2, "0")}
                 subtitle="Out for Delivery"
                 iconBg="bg-orange-50"
                 iconColor="text-orange-600"
@@ -82,7 +77,7 @@ function CustomerDashboard() {
               <StatCard
                 icon={CheckCircle2}
                 title="Delivered"
-                value="25"
+                value={String(dashboardData?.stats?.delivered ?? 0).padStart(2, "0")}
                 subtitle="All Time"
                 iconBg="bg-green-50"
                 iconColor="text-green-600"
@@ -90,7 +85,7 @@ function CustomerDashboard() {
               <StatCard
                 icon={Clock3}
                 title="Pending"
-                value="03"
+                value={String(dashboardData?.stats?.pending ?? 0).padStart(2, "0")}
                 subtitle="Yet to Pick Up"
                 iconBg="bg-purple-50"
                 iconColor="text-purple-600"
@@ -123,10 +118,10 @@ function CustomerDashboard() {
               <div className="bg-white rounded-2xl border border-orange-100 shadow-sm p-5">
                 <h2 className="text-xl font-bold">Parcel Status</h2>
                 <div className="mt-4 rounded-xl bg-orange-50 px-4 py-3 text-center text-sm font-bold">
-                  Parcel ID: <span className="text-orange-700">#PKG10245</span>
+                  Parcel ID: <span className="text-orange-700">{recentDeliveries[0]?.trackingId || "No active parcel"}</span>
                 </div>
                 <div className="mt-5">
-                  <ParcelTimeline />
+                  <ParcelTimeline delivery={recentDeliveries[0]} />
                 </div>
               </div>
             </section>
@@ -154,22 +149,33 @@ function CustomerDashboard() {
                     <tbody>
                       {recentDeliveries.map((delivery) => (
                         <tr
-                          key={delivery.id}
+                          key={delivery.trackingId}
                           className="border-t border-gray-100 hover:bg-orange-50/40 transition"
                         >
-                          <td className="px-5 py-4 font-bold">{delivery.id}</td>
-                          <td className="px-5 py-4 text-gray-600">{delivery.date}</td>
-                          <td className="px-5 py-4">{delivery.to}</td>
+                          <td className="px-5 py-4 font-bold">{delivery.trackingId}</td>
+                          <td className="px-5 py-4 text-gray-600">
+                            {delivery.createdAt
+                                ? new Date(delivery.createdAt).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    })
+                                : "-"}</td>
+                          <td className="px-5 py-4">{delivery.deliveryAddress}</td>
                           <td className="px-5 py-4">
                             <span
                               className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-medium ${statusClass(
                                 delivery.status
                               )}`}
                             >
-                              {delivery.status}
+                              {delivery.status
+                                ?.toLowerCase()
+                                .split("_")
+                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(" ")}
                             </span>
                           </td>
-                          <td className="px-5 py-4">{delivery.rider}</td>
+                          <td className="px-5 py-4">{delivery.rider?.name || "-"}</td>
                           <td className="px-5 py-4">
                             <button
                               type="button"

@@ -6,46 +6,78 @@ import {
   Home,
 } from "lucide-react";
 
-const timelineItems = [
-  {
-    title: "Order Confirmed",
-    description: "Your parcel has been confirmed",
-    time: "10:30 AM",
-    icon: CheckCircle2,
-    completed: true,
-  },
-  {
-    title: "Rider Assigned",
-    description: "Karim Ahmed has been assigned",
-    time: "10:45 AM",
-    icon: UserCheck,
-    completed: true,
-  },
-  {
-    title: "Parcel Picked Up",
-    description: "Parcel picked up from sender",
-    time: "11:15 AM",
-    icon: PackageCheck,
-    completed: true,
-  },
-  {
-    title: "Out for Delivery",
-    description: "Your parcel is on the way",
-    time: "11:40 AM",
-    icon: Bike,
-    completed: true,
-    current: true,
-  },
-  {
-    title: "Delivered",
-    description: "Waiting for delivery",
-    time: "",
-    icon: Home,
-    completed: false,
-  },
-];
+function ParcelTimeline({ delivery }) {
+  const status = delivery?.status?.toUpperCase() || "PENDING";
 
-function ParcelTimeline() {
+  const riderName =
+    delivery?.rider?.name ||
+    delivery?.rider?.fullName ||
+    "Rider not assigned";
+
+  const formatTime = (date) => {
+    if (!date) return "";
+    return new Date(date).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const isStatusReached = (targetStatus) => {
+    const statusOrder = {
+      PENDING: 0,
+      ASSIGNED: 1,
+      PICKED_UP: 2,
+      OUT_FOR_DELIVERY: 3,
+      DELIVERED: 4,
+    };
+    const currentOrder = statusOrder[status] ?? 0;
+    const targetOrder = statusOrder[targetStatus] ?? 0;
+    return currentOrder >= targetOrder;
+  };
+
+  const timelineItems = [
+    {
+      title: "Order Confirmed",
+      description: "Your parcel has been confirmed",
+      time: formatTime(delivery?.createdAt),
+      icon: CheckCircle2,
+      completed: true,
+    },
+    {
+      title: "Rider Assigned",
+      description: delivery?.rider
+        ? `${riderName} has been assigned`
+        : "Waiting for rider assignment",
+      time: "",
+      icon: UserCheck,
+      completed: isStatusReached("ASSIGNED"),
+    },
+    {
+      title: "Parcel Picked Up",
+      description: "Parcel picked up from sender",
+      time: "",
+      icon: PackageCheck,
+      completed: isStatusReached("PICKED_UP"),
+    },
+    {
+      title: "Out for Delivery",
+      description: "Your parcel is on the way",
+      time: "",
+      icon: Bike,
+      completed: isStatusReached("OUT_FOR_DELIVERY"),
+      current: status === "OUT_FOR_DELIVERY",
+    },
+    {
+      title: "Delivered",
+      description: status === "DELIVERED"
+        ? "Your parcel has been delivered"
+        : "Waiting for delivery",
+      time: status === "DELIVERED" ? formatTime(delivery?.updatedAt) : "",
+      icon: Home,
+      completed: status === "DELIVERED",
+    },
+  ];
+
   return (
     <div className="bg-white border border-orange-100 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-7">
@@ -54,7 +86,7 @@ function ParcelTimeline() {
           <p className="text-sm text-gray-500 mt-1">Track your parcel's delivery progress</p>
         </div>
         <span className="px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 text-xs font-semibold">
-          FTX-1790862757353
+          {delivery?.trackingId || "No active parcel"}
         </span>
       </div>
 

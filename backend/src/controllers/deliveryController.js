@@ -33,7 +33,20 @@ const getMyDeliveries = async (req, res) => {
     }
 };
 
+// Get Customer Dashboard
+const getCustomerDashboard = async (req, res) => {
+  try {
+    const customerId = req.user.id;
+    const dashboard = await deliveryService.getCustomerDashboard(customerId);
+    res.json(dashboard);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 module.exports = {
     createDelivery,
-    getMyDeliveries
+    getMyDeliveries,
+    getCustomerDashboard
 };

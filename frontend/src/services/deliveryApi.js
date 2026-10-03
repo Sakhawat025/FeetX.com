@@ -11,3 +11,9 @@ export const getMyDeliveries = async () => {
     const response = await api.get("/deliveries/my");
     return response.data;
 };
+
+// Get customer dashboard data
+export const getCustomerDashboard = async () => {
+  const response = await api.get("/deliveries/dashboard");
+  return response.data;
+};

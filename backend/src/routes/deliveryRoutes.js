@@ -10,4 +10,11 @@ router.post("/", authMiddleware, deliveryController.createDelivery);
 // Get My Deliveries (Customer)
 router.get("/my", authMiddleware, deliveryController.getMyDeliveries);
 
+// Customer Dashboard
+router.get(
+    "/dashboard",
+    authMiddleware,
+    deliveryController.getCustomerDashboard
+);
+
 module.exports = router;
