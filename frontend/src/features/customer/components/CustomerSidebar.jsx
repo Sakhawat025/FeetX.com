@@ -10,17 +10,32 @@ import {
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { useEffect, useState } from "react";
+import { getUnreadCount } from "../../../services/notificationApi";
 
 function CustomerSidebar() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  useEffect(() => {
+      const loadUnreadCount = async () => {
+        try {
+          const count = await getUnreadCount();
+          setUnreadCount(count);
+        } catch (error) {
+          console.error("Failed to load unread notification count:", error);
+        }
+      };
+
+      loadUnreadCount();
+    }, []);
   const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/customer/dashboard" },
     { label: "My Parcels", icon: Package, path: "/customer/parcels" },
     { label: "Live Tracking", icon: MapPin, path: "/customer/tracking" },
     { label: "Delivery History", icon: History, path: "/customer/history" },
-    { label: "Notifications", icon: Bell, path: "/customer/notifications", badge: 3 },
+    { label: "Notifications", icon: Bell, path: "/customer/notifications", badge: unreadCount },
     { label: "My Profile", icon: User, path: "/customer/profile" },
     { label: "Settings", icon: Settings, path: "/customer/settings" },
   ];
@@ -65,10 +80,10 @@ function CustomerSidebar() {
                 <Icon size={20} strokeWidth={1.8} />
                 <span className="text-sm font-semibold">{item.label}</span>
               </div>
-              {item.badge && (
-                <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
-                  {item.badge}
-                </span>
+              {item.badge > 0 && (
+                  <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                    {item.badge}
+                  </span>
               )}
             </NavLink>
           );
