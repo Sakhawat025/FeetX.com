@@ -178,9 +178,10 @@ function CustomerDashboard() {
                           <td className="px-5 py-4">{delivery.rider?.name || "-"}</td>
                           <td className="px-5 py-4">
                             <button
-                              type="button"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-orange-700 hover:bg-orange-50 transition"
-                            >
+                                onClick={() =>
+                                  navigate(`/customer/tracking?trackingId=${delivery.trackingId}`)
+                                }
+                              >
                               <Eye size={15} />
                               View
                             </button>

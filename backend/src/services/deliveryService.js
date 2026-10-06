@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const notificationService = require("./notificationService");
 
 // Create new delivery
 const createDelivery = async (data, customerId) => {
@@ -18,8 +19,16 @@ const createDelivery = async (data, customerId) => {
         }
     });
 
+    await notificationService.createNotification({
+      userId: customerId,
+      title: "Delivery Created",
+      message: `Your parcel ${delivery.trackingId} has been successfully created.`,
+      type: "DELIVERY"
+    });
+
     return delivery;
 };
+
 
 // Get customer deliveries
 const getCustomerDeliveries = async (customerId) => {
