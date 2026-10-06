@@ -19,17 +19,26 @@ function CustomerSidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-      const loadUnreadCount = async () => {
-        try {
-          const count = await getUnreadCount();
-          setUnreadCount(count);
-        } catch (error) {
-          console.error("Failed to load unread notification count:", error);
-        }
-      };
+    const loadUnreadCount = async () => {
+      try {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("Failed to load unread notification count:", error);
+      }
+    };
+    loadUnreadCount();
 
+    const handleNotificationUpdate = () => {
       loadUnreadCount();
-    }, []);
+    };
+    window.addEventListener("notifications-updated", handleNotificationUpdate);
+
+    return () => {
+      window.removeEventListener("notifications-updated", handleNotificationUpdate);
+    };
+  }, []);
+
   const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/customer/dashboard" },
     { label: "My Parcels", icon: Package, path: "/customer/parcels" },
