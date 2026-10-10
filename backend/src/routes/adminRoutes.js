@@ -12,4 +12,11 @@ router.post(
     adminController.createRider
 );
 
+router.get(
+    "/dashboard-stats",
+    authMiddleware,
+    allowRoles("ADMIN"),
+    adminController.getDashboardStats
+);
+
 module.exports = router;
