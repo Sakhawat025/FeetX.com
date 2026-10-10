@@ -1,6 +1,36 @@
+import { useState, useEffect } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
-
 function Settings() {
+  const [orderUpdates, setOrderUpdates] = useState(true);
+  const [riderUpdates, setRiderUpdates] = useState(true);
+  const [promotions, setPromotions] = useState(true);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem("feetx_notification_preferences");
+    if (savedPreferences) {
+      const preferences = JSON.parse(savedPreferences);
+      setOrderUpdates(preferences.orderUpdates);
+      setRiderUpdates(preferences.riderUpdates);
+      setPromotions(preferences.promotions);
+    }
+  }, []);
+
+
+  const handleSavePreferences = () => {
+  const preferences = { orderUpdates, riderUpdates, promotions };
+    localStorage.setItem(
+      "feetx_notification_preferences",
+      JSON.stringify(preferences)
+    );
+    setSaved(true);
+    setTimeout(() => {
+      setSaved(false);
+    }, 2000);
+  };
+
+
+
   return (
     <div className="min-h-screen bg-[#fffaf3] flex">
 
@@ -33,23 +63,50 @@ function Settings() {
                     <p className="font-medium text-gray-800">Order Updates</p>
                     <p className="text-sm text-gray-500">Receive notifications about your orders.</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5 accent-orange-700" />
+                  <input
+                    type="checkbox"
+                    checked={orderUpdates}
+                    onChange={(e) => setOrderUpdates(e.target.checked)}
+                    className="w-5 h-5 accent-orange-700"
+                  />
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-800">Rider Updates</p>
                     <p className="text-sm text-gray-500">Get notified when your rider status changes.</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5 accent-orange-700" />
+                  <input
+                    type="checkbox"
+                    checked={riderUpdates}
+                    onChange={(e) => setRiderUpdates(e.target.checked)}
+                    className="w-5 h-5 accent-orange-700"
+                  />
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-800">Promotions & Offers</p>
                     <p className="text-sm text-gray-500">Receive promotions, offers and discounts.</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5 accent-orange-700" />
+                  <input
+                    type="checkbox"
+                    checked={promotions}
+                    onChange={(e) => setPromotions(e.target.checked)}
+                    className="w-5 h-5 accent-orange-700"
+                  />
+                </div>
+                <div className="mt-6 flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={handleSavePreferences}
+                    className="rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 transition"
+                  >
+                    Save Preferences
+                  </button>
+                  {saved && (
+                    <span className="text-sm font-medium text-green-600">
+                      Preferences saved successfully.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
