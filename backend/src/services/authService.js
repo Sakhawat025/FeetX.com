@@ -58,7 +58,26 @@ const loginUser = async (email, password) => {
     return { user:safeUser, token };
 };
 
+const updateCustomerProfile = async (userId, data) => {
+  const { name, phone } = data;
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { name, phone },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true
+    }
+  });
+  return updatedUser;
+};
+
+
+
 module.exports = {
     registerCustomer,
-    loginUser
+    loginUser,
+    updateCustomerProfile
 };
