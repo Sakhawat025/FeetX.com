@@ -4,3 +4,17 @@ export const getDashboardStats = async () => {
   const response = await api.get("/admin/dashboard-stats");
   return response.data;
 };
+
+export const getLiveRiders = async () => {
+  const response = await api.get("/admin/live-riders");
+  return response.data;
+};
+
+export const getDailyDeliveryPerformance = async () => {
+    const response = await api.get("/admin/daily-delivery-performance");
+    return response.data;
+};
+export const getPendingAssignments = async () => {
+    const response = await api.get("/admin/pending-assignments");
+    return response.data;
+};

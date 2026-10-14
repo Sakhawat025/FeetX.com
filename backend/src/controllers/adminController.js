@@ -37,6 +37,7 @@ const createRider = async (req, res) => {
 const getDashboardStats = async (req, res) => {
     try {
         const [
+            totalDeliveries,
             totalRiders,
             activeRiders,
             activeDeliveries,
@@ -44,6 +45,7 @@ const getDashboardStats = async (req, res) => {
             pendingDeliveries,
             cancelledDeliveries
         ] = await Promise.all([
+            prisma.delivery.count(),
             prisma.user.count({ where: { role: "RIDER" } }),
             prisma.user.count({ where: { role: "RIDER", status: true } }),
             prisma.delivery.count({ where: { status: { in: ["CONFIRMED", "PICKED_UP", "OUT_FOR_DELIVERY"] } } }),
@@ -53,6 +55,7 @@ const getDashboardStats = async (req, res) => {
         ]);
 
         res.json({
+            totalDeliveries,
             totalRiders,
             activeRiders,
             activeDeliveries,
@@ -66,5 +69,109 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
+const getLiveRiders = async (req, res) => {
+    try {
+        const riders = await prisma.user.findMany({
+            where: { role: "RIDER" },
+            select: {
+                id: true,
+                name: true,
+                phone: true,
+                status: true
+            },
+            orderBy: { name: "asc" }
+        });
+        res.json(riders);
+    } catch (error) {
+        console.error("Live riders error:", error);
+        res.status(500).json({ message: "Failed to load riders" });
+    }
+};
+
+const getDailyDeliveryPerformance = async (req, res) => {
+    try {
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 6);
+        startDate.setHours(0, 0, 0, 0);
+
+        const deliveries = await prisma.delivery.findMany({
+            where: {
+                updatedAt: { gte: startDate },
+                status: { in: ["DELIVERED", "CANCELLED"] }
+            },
+            select: { status: true, updatedAt: true },
+            orderBy: { updatedAt: "asc" }
+        });
+
+        const performance = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const dayDeliveries = deliveries.filter((delivery) => {
+                const deliveryDate = new Date(delivery.updatedAt);
+                return deliveryDate >= dayStart && deliveryDate <= dayEnd;
+            });
+
+            const delivered = dayDeliveries.filter((d) => d.status === "DELIVERED").length;
+            const cancelled = dayDeliveries.filter((d) => d.status === "CANCELLED").length;
+
+            performance.push({
+                day: date.toLocaleDateString("en-US", { weekday: "short" }),
+                delivered,
+                cancelled
+            });
+        }
+
+        res.json(performance);
+    } catch (error) {
+        console.error("Daily performance error:", error);
+        res.status(500).json({ message: "Failed to load daily delivery performance" });
+    }
+};
+
+const getPendingAssignments = async (req, res) => {
+    try {
+        const pendingAssignments = await prisma.delivery.findMany({
+            where: {
+                status: "PENDING",
+                riderId: null
+            },
+            select: {
+                id: true,
+                trackingId: true,
+                pickupAddress: true,
+                deliveryAddress: true,
+                createdAt: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            },
+            take: 5
+        });
+
+        res.json(pendingAssignments);
+    } catch (error) {
+        console.error("Pending assignments error:", error);
+        res.status(500).json({
+            message: "Failed to load pending assignments"
+        });
+    }
+};
+
+
+
+
 exports.createRider = createRider;
 exports.getDashboardStats = getDashboardStats;
+exports.getLiveRiders = getLiveRiders;
+exports.getDailyDeliveryPerformance = getDailyDeliveryPerformance;
+exports.getPendingAssignments = getPendingAssignments;

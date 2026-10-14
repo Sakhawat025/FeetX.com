@@ -19,4 +19,25 @@ router.get(
     adminController.getDashboardStats
 );
 
+router.get(
+    "/live-riders",
+    authMiddleware,
+    allowRoles("ADMIN"),
+    adminController.getLiveRiders
+);
+
+router.get(
+    "/daily-delivery-performance",
+    authMiddleware,
+    allowRoles("ADMIN"),
+    adminController.getDailyDeliveryPerformance
+);
+
+router.get(
+    "/pending-assignments",
+    authMiddleware,
+    allowRoles("ADMIN"),
+    adminController.getPendingAssignments
+);
+
 module.exports = router;
