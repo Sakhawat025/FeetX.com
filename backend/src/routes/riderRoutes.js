@@ -1,29 +1,34 @@
 const express = require("express");
 const router = express.Router();
+
 const riderController = require("../controllers/riderController");
+const deliveryWorkflowController = require(
+  "../controllers/deliveryWorkflowController"
+);
+
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 
+router.use(authMiddleware, allowRoles("RIDER"));
 
 router.get(
-    "/dashboard-stats",
-    authMiddleware,
-    allowRoles("RIDER"),
-    riderController.getDashboardStats
+  "/dashboard-stats",
+  riderController.getDashboardStats
 );
 
 router.get(
-    "/current-task",
-    authMiddleware,
-    allowRoles("RIDER"),
-    riderController.getCurrentTask
+  "/current-task",
+  riderController.getCurrentTask
 );
 
 router.get(
-    "/assigned-deliveries",
-    authMiddleware,
-    allowRoles("RIDER"),
-    riderController.getAssignedDeliveries
+  "/assigned-deliveries",
+  deliveryWorkflowController.getAssignedDeliveries
+);
+
+router.patch(
+  "/deliveries/:id/status",
+  deliveryWorkflowController.updateStatus
 );
 
 module.exports = router;

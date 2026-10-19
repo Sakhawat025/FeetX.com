@@ -10,6 +10,7 @@ import PendingAssignment from "../../features/admin/components/PendingAssignment
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const loadDashboardStats = async () => {
@@ -23,7 +24,7 @@ function AdminDashboard() {
       }
     };
     loadDashboardStats();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <AdminLayout>
@@ -53,7 +54,9 @@ function AdminDashboard() {
               <DailyDeliveryPerformance />
             </div>
             <div className="xl:col-span-1">
-                <PendingAssignment />
+                <PendingAssignment
+                  onAssigned={() => setRefreshKey((value) => value + 1)}
+                />
             </div>
           </div>
         </div>

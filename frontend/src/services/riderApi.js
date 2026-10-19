@@ -14,3 +14,14 @@ export const getAssignedDeliveries = async () => {
     const response = await api.get("/rider/assigned-deliveries");
     return response.data;
 };
+
+export const updateDeliveryStatus = async (deliveryId, status, expectedStatus) => {
+  const response = await api.patch(
+    `/rider/deliveries/${deliveryId}/status`,
+    {
+      status,
+      expectedStatus,
+    }
+  );
+  return response.data;
+};

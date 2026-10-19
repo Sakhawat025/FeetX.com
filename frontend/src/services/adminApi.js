@@ -18,3 +18,12 @@ export const getPendingAssignments = async () => {
     const response = await api.get("/admin/pending-assignments");
     return response.data;
 };
+
+export const assignDeliveryRider = async (deliveryId, riderId) => {
+  const response = await api.patch(
+    `/admin/deliveries/${deliveryId}/assign`,
+    { riderId: Number(riderId) }
+  );
+
+  return response.data;
+};

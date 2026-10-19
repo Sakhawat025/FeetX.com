@@ -4,6 +4,7 @@ const router = express.Router();
 const adminController = require("../controllers/adminController");
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
+const deliveryWorkflowController = require("../controllers/deliveryWorkflowController");
 
 router.post(
     "/create-rider",
@@ -38,6 +39,13 @@ router.get(
     authMiddleware,
     allowRoles("ADMIN"),
     adminController.getPendingAssignments
+);
+
+router.patch(
+  "/deliveries/:id/assign",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  deliveryWorkflowController.assignRider
 );
 
 module.exports = router;

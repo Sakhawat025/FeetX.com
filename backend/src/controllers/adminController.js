@@ -139,32 +139,36 @@ const getDailyDeliveryPerformance = async (req, res) => {
 };
 
 const getPendingAssignments = async (req, res) => {
-    try {
-        const pendingAssignments = await prisma.delivery.findMany({
-            where: {
-                status: "PENDING",
-                riderId: null
-            },
-            select: {
-                id: true,
-                trackingId: true,
-                pickupAddress: true,
-                deliveryAddress: true,
-                createdAt: true
-            },
-            orderBy: {
-                createdAt: "desc"
-            },
-            take: 5
-        });
+  try {
+    const deliveries = await prisma.delivery.findMany({
+      where: {
+        riderId: null,
+        status: {
+          in: ["PENDING", "CONFIRMED"],
+        },
+      },
+      select: {
+        id: true,
+        trackingId: true,
+        receiverName: true,
+        pickupAddress: true,
+        deliveryAddress: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
-        res.json(pendingAssignments);
-    } catch (error) {
-        console.error("Pending assignments error:", error);
-        res.status(500).json({
-            message: "Failed to load pending assignments"
-        });
-    }
+    res.json(deliveries);
+  } catch (error) {
+    console.error("Pending assignments error:", error);
+
+    res.status(500).json({
+      message: "Failed to load pending assignments",
+    });
+  }
 };
 
 

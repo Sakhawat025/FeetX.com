@@ -32,12 +32,23 @@ const createDelivery = async (data, customerId) => {
 
 // Get customer deliveries
 const getCustomerDeliveries = async (customerId) => {
-    const deliveries = await prisma.delivery.findMany({
-        where: { customerId },
-        orderBy: { createdAt: "desc" }
-    });
-
-    return deliveries;
+  return prisma.delivery.findMany({
+    where: {
+      customerId,
+    },
+    include: {
+      rider: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 };
 
 // Get customer dashboard data

@@ -1,159 +1,113 @@
-import {
-  CheckCircle2,
-  UserCheck,
-  PackageCheck,
-  Bike,
-  Home,
-} from "lucide-react";
+const STEPS = [
+  "Order Created",
+  "Rider Assigned",
+  "Parcel Picked Up",
+  "Out for Delivery",
+  "Delivered",
+];
 
-function ParcelTimeline({ delivery }) {
-  const status = delivery?.status?.toUpperCase() || "PENDING";
+export default function ParcelTimeline({ delivery }) {
+  if (!delivery) {
+    return (
+      <div className="rounded-2xl bg-white p-6 text-gray-500">
+        Select a parcel to view its progress.
+      </div>
+    );
+  }
 
-  const riderName =
-    delivery?.rider?.name ||
-    delivery?.rider?.fullName ||
-    "Rider not assigned";
+  const status = delivery.status;
+  const rider = delivery.rider;
 
-  const formatTime = (date) => {
-    if (!date) return "";
-    return new Date(date).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const terminalException = [
+    "CANCELLED",
+    "RETURNED",
+  ].includes(status);
+
+  const progress = {
+    PENDING: 0,
+    CONFIRMED: delivery.riderId || rider ? 1 : 0,
+    PICKED_UP: 2,
+    OUT_FOR_DELIVERY: 3,
+    DELIVERED: 4,
   };
 
-  const isStatusReached = (targetStatus) => {
-    const statusOrder = {
-      PENDING: 0,
-      ASSIGNED: 1,
-      PICKED_UP: 2,
-      OUT_FOR_DELIVERY: 3,
-      DELIVERED: 4,
-    };
-    const currentOrder = statusOrder[status] ?? 0;
-    const targetOrder = statusOrder[targetStatus] ?? 0;
-    return currentOrder >= targetOrder;
-  };
+  const currentStep = progress[status] ?? 0;
 
-  const timelineItems = [
-    {
-      title: "Order Confirmed",
-      description: "Your parcel has been confirmed",
-      time: formatTime(delivery?.createdAt),
-      icon: CheckCircle2,
-      completed: true,
-    },
-    {
-      title: "Rider Assigned",
-      description: delivery?.rider
-        ? `${riderName} has been assigned`
-        : "Waiting for rider assignment",
-      time: "",
-      icon: UserCheck,
-      completed: isStatusReached("ASSIGNED"),
-    },
-    {
-      title: "Parcel Picked Up",
-      description: "Parcel picked up from sender",
-      time: "",
-      icon: PackageCheck,
-      completed: isStatusReached("PICKED_UP"),
-    },
-    {
-      title: "Out for Delivery",
-      description: "Your parcel is on the way",
-      time: "",
-      icon: Bike,
-      completed: isStatusReached("OUT_FOR_DELIVERY"),
-      current: status === "OUT_FOR_DELIVERY",
-    },
-    {
-      title: "Delivered",
-      description: status === "DELIVERED"
-        ? "Your parcel has been delivered"
-        : "Waiting for delivery",
-      time: status === "DELIVERED" ? formatTime(delivery?.updatedAt) : "",
-      icon: Home,
-      completed: status === "DELIVERED",
-    },
-  ];
+  const phone = String(rider?.phone || "").replace(
+    /[^\d+]/g,
+    ""
+  );
 
   return (
-    <div className="bg-white border border-orange-100 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-7">
-        <div>
-          <h2 className="text-lg font-bold text-gray-950">Parcel Status</h2>
-          <p className="text-sm text-gray-500 mt-1">Track your parcel's delivery progress</p>
-        </div>
-        <span className="px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 text-xs font-semibold">
-          {delivery?.trackingId || "No active parcel"}
-        </span>
-      </div>
+    <section className="rounded-2xl border border-orange-100 bg-white p-6">
+      <h2 className="text-lg font-bold text-gray-900">
+        Parcel Status
+      </h2>
 
-      <div className="relative">
-        {timelineItems.map((item, index) => {
-          const Icon = item.icon;
-          const isLast = index === timelineItems.length - 1;
+      <p className="mt-1 text-sm text-gray-500">
+        #{delivery.trackingId}
+      </p>
 
-          return (
-            <div key={item.title} className="relative flex gap-4">
-              {/* Timeline line */}
-              {!isLast && (
-                <div
-                  className={`absolute left-[19px] top-[42px] w-[2px] h-[62px] ${
-                    item.completed ? "bg-orange-500" : "bg-gray-200"
-                  }`}
-                />
-              )}
+      {terminalException ? (
+        <p className="mt-5 rounded-xl bg-red-50 p-4 font-medium text-red-700">
+          This parcel is {status.toLowerCase()}.
+        </p>
+      ) : (
+        <ol className="mt-6 space-y-5">
+          {STEPS.map((label, index) => {
+            const reached = index <= currentStep;
 
-              {/* Icon */}
-              <div
-                className={`relative z-10 w-10 h-10 shrink-0 rounded-full flex items-center justify-center border-4 border-white ${
-                  item.current
-                    ? "bg-orange-700 text-white shadow-md"
-                    : item.completed
-                    ? "bg-orange-100 text-orange-700"
-                    : "bg-gray-100 text-gray-400"
-                }`}
+            return (
+              <li
+                key={label}
+                aria-current={
+                  index === currentStep ? "step" : undefined
+                }
+                className="flex items-center gap-3"
               >
-                <Icon size={17} strokeWidth={2} />
-              </div>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                    reached
+                      ? "bg-orange-600 text-white"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
+                >
+                  {reached ? "✓" : index + 1}
+                </span>
 
-              {/* Content */}
-              <div className={`flex-1 ${isLast ? "pb-0" : "pb-7"}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3
-                      className={`text-sm font-semibold ${
-                        item.completed || item.current ? "text-gray-900" : "text-gray-400"
-                      }`}
-                    >
-                      {item.title}
-                    </h3>
-                    <p
-                      className={`mt-1 text-xs ${
-                        item.completed || item.current ? "text-gray-500" : "text-gray-400"
-                      }`}
-                    >
-                      {item.description}
-                    </p>
-                  </div>
-                  {item.time && (
-                    <span className="text-xs text-gray-400 whitespace-nowrap">{item.time}</span>
-                  )}
-                </div>
-                {item.current && (
-                  <span className="inline-block mt-2 px-2.5 py-1 rounded-full bg-green-50 text-green-600 text-[11px] font-semibold">
-                    In Progress
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                <span
+                  className={
+                    reached
+                      ? "font-medium text-gray-900"
+                      : "text-gray-400"
+                  }
+                >
+                  {label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <div className="mt-6 border-t border-orange-100 pt-4">
+        <p className="text-sm text-gray-500">
+          Assigned Rider
+        </p>
+
+        <p className="mt-1 font-semibold">
+          {rider?.name || "Not assigned yet"}
+        </p>
+
+        {phone && (
+          <a
+            href={`tel:${phone}`}
+            className="mt-1 inline-block text-sm text-orange-600"
+          >
+            {rider.phone}
+          </a>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
-
-export default ParcelTimeline;

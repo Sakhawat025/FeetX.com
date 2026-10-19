@@ -14,46 +14,62 @@ function Tracking() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const trackingId = searchParams.get("trackingId");
+
   const [parcel, setParcel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    loadParcel();
-  }, [trackingId]);
+    let active = true;
+    let timer;
 
-  const loadParcel = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await getMyDeliveries();
-      const data = response?.data ?? response;
+    setLoading(true);
+    setParcel(null);
+    setError("");
 
-      if (!Array.isArray(data)) {
-        setParcel(null);
-        setError("Unable to load parcel data.");
-        return;
+    async function refreshParcel() {
+      try {
+        const response = await getMyDeliveries();
+        const data = response?.data ?? response;
+
+        if (!Array.isArray(data)) {
+          throw new Error("Unexpected parcel response");
+        }
+
+        const foundParcel = data.find(
+          (item) => item.trackingId === trackingId
+        );
+
+        if (!active) return;
+
+        setParcel(foundParcel || null);
+        setError(foundParcel ? "" : "Parcel not found.");
+      } catch {
+        if (active) {
+          setError(
+            "Could not refresh parcel status. Please try again."
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+
+          timer = window.setTimeout(
+            refreshParcel,
+            15000
+          );
+        }
       }
-
-      const foundParcel = data.find(
-        (item) => item.trackingId === trackingId
-      );
-
-      if (!foundParcel) {
-        setParcel(null);
-        setError("Parcel not found.");
-        return;
-      }
-
-      setParcel(foundParcel);
-    } catch (err) {
-      console.error("Failed to load tracking data:", err);
-      setParcel(null);
-      setError("Failed to load parcel information.");
-    } finally {
-      setLoading(false);
     }
-  };
+
+    refreshParcel();
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [trackingId, refreshKey]);
 
   const formatStatus = (status) => {
     if (!status) return "Pending";
@@ -76,6 +92,8 @@ function Tracking() {
       case "CANCELLED":
       case "RETURNED":
         return "bg-red-50 text-red-600";
+      case "ASSIGNED":
+        return "bg-purple-50 text-purple-700";
       default:
         return "bg-gray-100 text-gray-600";
     }
@@ -269,7 +287,7 @@ function Tracking() {
                 <p className="mt-3 text-sm text-gray-500">
                   Recipient:{" "}
                   <span className="font-medium text-gray-900">
-                    {parcel.recipientName || "Anonymous"}
+                    {parcel.receiverName || "Not available"}
                   </span>
                 </p>
               </div>
@@ -277,7 +295,26 @@ function Tracking() {
           </div>
         </div>
                 {/* Parcel Timeline */}
-        <ParcelTimeline delivery={parcel} />
+        <div className="mt-6">
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setRefreshKey((value) => value + 1)}
+              disabled={loading}
+              className="rounded-xl border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-700 disabled:opacity-50"
+            >
+              Refresh delivery status
+            </button>
+          </div>
+
+          {error && (
+            <p role="alert" className="mb-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
+          <ParcelTimeline delivery={parcel} />
+        </div>
       </section>
     </div>
   );
