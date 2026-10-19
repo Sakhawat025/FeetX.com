@@ -111,7 +111,7 @@ function CustomerDashboard() {
                     Live
                   </span>
                 </div>
-                <TrackingMap />
+                <TrackingMap deliveryId={recentDeliveries[0]?.id} />
               </div>
 
               {/* Parcel Status */}

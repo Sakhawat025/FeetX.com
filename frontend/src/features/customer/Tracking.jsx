@@ -9,6 +9,7 @@ import {
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getMyDeliveries } from "../../services/deliveryApi";
 import ParcelTimeline from "./components/ParcelTimeline";
+import TrackingMap from "./components/TrackingMap";
 
 function Tracking() {
   const [searchParams] = useSearchParams();
@@ -313,7 +314,13 @@ function Tracking() {
             </p>
           )}
 
-          <ParcelTimeline delivery={parcel} />
+          <div className="mb-6 rounded-2xl border border-orange-100 bg-white p-5">
+            <h2 className="mb-4 text-lg font-bold">
+              Rider Live Location
+            </h2>
+
+            <TrackingMap deliveryId={parcel.id} />
+          </div>
         </div>
       </section>
     </div>

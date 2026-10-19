@@ -13,6 +13,7 @@ import {
   getMyDeliveries,
   createDelivery,
 } from "../../services/deliveryApi";
+import ParcelLocationPicker from "../../components/common/ParcelLocationPicker";
 
 function Parcels() {
   const navigate = useNavigate();
@@ -32,9 +33,14 @@ function Parcels() {
     receiverPhone: "",
     pickupAddress: "",
     deliveryAddress: "",
+    pickupLatitude: null,
+    pickupLongitude: null,
+    deliveryLatitude: null,
+    deliveryLongitude: null,
     parcelType: "Document",
     parcelWeight: "",
   });
+
 
   useEffect(() => {
     loadParcels();
@@ -116,6 +122,10 @@ function Parcels() {
       receiverPhone: "",
       pickupAddress: "",
       deliveryAddress: "",
+      pickupLatitude: null,
+      pickupLongitude: null,
+      deliveryLatitude: null,
+      deliveryLongitude: null,
       parcelType: "Document",
       parcelWeight: "",
     });
@@ -127,16 +137,51 @@ function Parcels() {
   const handleCreateParcel = async (e) => {
     e.preventDefault();
 
+    if (creating) return;
+
     setCreateError("");
 
-    if (
-      !formData.senderName ||
-      !formData.receiverName ||
-      !formData.pickupAddress ||
-      !formData.deliveryAddress ||
-      !formData.parcelType
-    ) {
+    const requiredFields = [
+      "senderName",
+      "receiverName",
+      "pickupAddress",
+      "deliveryAddress",
+      "parcelType",
+    ];
+
+    if (requiredFields.some((field) => !formData[field].trim())) {
       setCreateError("Please fill in all required fields.");
+      return;
+    }
+
+    const coordinateFields = [
+      "pickupLatitude",
+      "pickupLongitude",
+      "deliveryLatitude",
+      "deliveryLongitude",
+    ];
+
+    if (
+      coordinateFields.some(
+        (field) => !Number.isFinite(formData[field])
+      )
+    ) {
+      setCreateError(
+        "Please select both pickup and delivery points on the map."
+      );
+      return;
+    }
+
+    const weight =
+      formData.parcelWeight === ""
+        ? undefined
+        : Number(formData.parcelWeight);
+
+    if (
+      weight !== undefined &&
+      (!Number.isFinite(weight) || weight < 0)
+    ) {
+      setCreateError("Please enter a valid parcel weight.");
       return;
     }
 
@@ -144,21 +189,21 @@ function Parcels() {
       setCreating(true);
 
       await createDelivery({
-        senderName: formData.senderName,
-        receiverName: formData.receiverName,
-        receiverPhone: formData.receiverPhone || undefined,
-        pickupAddress: formData.pickupAddress,
-        deliveryAddress: formData.deliveryAddress,
+        senderName: formData.senderName.trim(),
+        receiverName: formData.receiverName.trim(),
+        receiverPhone: formData.receiverPhone.trim() || undefined,
+        pickupAddress: formData.pickupAddress.trim(),
+        deliveryAddress: formData.deliveryAddress.trim(),
+        pickupLatitude: formData.pickupLatitude,
+        pickupLongitude: formData.pickupLongitude,
+        deliveryLatitude: formData.deliveryLatitude,
+        deliveryLongitude: formData.deliveryLongitude,
         parcelType: formData.parcelType,
-        parcelWeight: formData.parcelWeight
-          ? Number(formData.parcelWeight)
-          : undefined,
+        parcelWeight: weight,
       });
 
       resetForm();
       setShowCreateForm(false);
-
-      // Refresh parcel list
       await loadParcels();
     } catch (error) {
       console.error("Failed to create parcel:", error);
@@ -456,6 +501,30 @@ function Parcels() {
                   />
                 </div>
               </div>
+              <ParcelLocationPicker
+                pickup={{
+                  latitude: formData.pickupLatitude,
+                  longitude: formData.pickupLongitude,
+                }}
+                destination={{
+                  latitude: formData.deliveryLatitude,
+                  longitude: formData.deliveryLongitude,
+                }}
+                onChange={(type, point) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    ...(type === "pickup"
+                      ? {
+                          pickupLatitude: point.latitude,
+                          pickupLongitude: point.longitude,
+                        }
+                      : {
+                          deliveryLatitude: point.latitude,
+                          deliveryLongitude: point.longitude,
+                        }),
+                  }));
+                }}
+              />
 
               {/* Parcel Type / Weight */}
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

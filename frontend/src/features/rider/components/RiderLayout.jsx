@@ -1,5 +1,6 @@
 import RiderSidebar from "./RiderSidebar";
 import RiderHeader from "./RiderHeader";
+import RiderLocationSharing from "./RiderLocationSharing";
 
 function RiderLayout({ children }) {
   return (
@@ -14,6 +15,7 @@ function RiderLayout({ children }) {
 
         {/* Page Content */}
         <main className="px-6 py-5">
+          <RiderLocationSharing />
           {children}
         </main>
       </div>

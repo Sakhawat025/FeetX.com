@@ -1,32 +1,83 @@
 const prisma = require("../config/prisma");
-const notificationService = require("./notificationService");
 
 // Create new delivery
 const createDelivery = async (data, customerId) => {
-    const trackingId = "FTX-" + Date.now();
+  const coordinates = {
+    pickupLatitude: data.pickupLatitude,
+    pickupLongitude: data.pickupLongitude,
+    deliveryLatitude: data.deliveryLatitude,
+    deliveryLongitude: data.deliveryLongitude,
+  };
 
-    const delivery = await prisma.delivery.create({
-        data: {
-            trackingId,
-            senderName: data.senderName,
-            receiverName: data.receiverName,
-            receiverPhone: data.receiverPhone,
-            pickupAddress: data.pickupAddress,
-            deliveryAddress: data.deliveryAddress,
-            parcelType: data.parcelType,
-            parcelWeight: data.parcelWeight,
-            customerId
-        }
+  for (const [field, value] of Object.entries(coordinates)) {
+    const limit = field.endsWith("Latitude") ? 90 : 180;
+
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value < -limit ||
+      value > limit
+    ) {
+      throw new Error(
+        "Please select valid pickup and delivery locations on the map."
+      );
+    }
+  }
+
+  const requiredFields = [
+    "senderName",
+    "receiverName",
+    "pickupAddress",
+    "deliveryAddress",
+    "parcelType",
+  ];
+
+  for (const field of requiredFields) {
+    if (
+      typeof data[field] !== "string" ||
+      !data[field].trim()
+    ) {
+      throw new Error("Please fill in all required fields.");
+    }
+  }
+
+  if (
+    data.parcelWeight != null &&
+    (!Number.isFinite(data.parcelWeight) || data.parcelWeight < 0)
+  ) {
+    throw new Error("Please enter a valid parcel weight.");
+  }
+
+  const trackingId = `FTX-${require("crypto").randomUUID()}`;
+
+  return prisma.$transaction(async (tx) => {
+    const delivery = await tx.delivery.create({
+      data: {
+        trackingId,
+        senderName: data.senderName.trim(),
+        receiverName: data.receiverName.trim(),
+        receiverPhone: data.receiverPhone || null,
+        pickupAddress: data.pickupAddress.trim(),
+        deliveryAddress: data.deliveryAddress.trim(),
+        parcelType: data.parcelType,
+        parcelWeight: data.parcelWeight ?? null,
+        ...coordinates,
+        customerId,
+      },
     });
 
-    await notificationService.createNotification({
-      userId: customerId,
-      title: "Delivery Created",
-      message: `Your parcel ${delivery.trackingId} has been successfully created.`,
-      type: "DELIVERY"
+    await tx.notification.create({
+      data: {
+        userId: customerId,
+        title: "Delivery Created",
+        message:
+          `Your parcel ${delivery.trackingId} has been successfully created.`,
+        type: "DELIVERY",
+      },
     });
 
     return delivery;
+  });
 };
 
 

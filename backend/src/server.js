@@ -26,6 +26,8 @@ app.use("/api/notifications", notificationRoutes);
 const riderRoutes = require("./routes/riderRoutes");
 app.use("/api/rider", riderRoutes);
 
+const trackingRoutes = require("./routes/trackingRoutes");
+app.use("/api/tracking", trackingRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
