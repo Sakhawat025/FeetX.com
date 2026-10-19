@@ -23,6 +23,9 @@ app.use("/api/deliveries", deliveryRoutes);
 const notificationRoutes = require("./routes/notificationRoutes");
 app.use("/api/notifications", notificationRoutes);
 
+const riderRoutes = require("./routes/riderRoutes");
+app.use("/api/rider", riderRoutes);
+
 
 // Test Route
 app.get("/", (req, res) => {

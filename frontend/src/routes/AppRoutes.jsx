@@ -13,6 +13,8 @@ import Profile from "../features/customer/Profile";
 import Settings from "../features/customer/Settings";
 import Tracking from "../features/customer/Tracking";
 import ProtectedRoute from "./ProtectedRoute";
+import AssignedDeliveries from "../features/rider/AssignedDeliveries";
+import RiderLayout from "../features/rider/components/RiderLayout";
 
 function AppRoutes() {
   return (
@@ -120,7 +122,16 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/rider/deliveries"
+          element={
+            <ProtectedRoute allowedRoles={["RIDER"]}>
+              <RiderLayout>
+                <AssignedDeliveries />
+              </RiderLayout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

@@ -42,11 +42,14 @@ export function AuthProvider({ children }) {
 
     // Logout Function
     const logout = () => {
+        localStorage.removeItem("feetx_token");
+        localStorage.removeItem("feetx_user");
+
         setUser(null);
         setToken(null);
+        setLoading(false);
 
-        localStorage.removeItem("feetx_user");
-        localStorage.removeItem("feetx_token");
+        window.location.replace("/login");
     };
 
     return (

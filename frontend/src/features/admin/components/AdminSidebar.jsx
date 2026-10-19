@@ -11,11 +11,14 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 
+
 function AdminSidebar() {
-  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+  };
   const { logout } = useAuth();
 
   const menuItems = [
@@ -30,11 +33,6 @@ function AdminSidebar() {
     { label: "Reports", icon: FileText, path: "/admin/reports" },
     { label: "Settings", icon: Settings, path: "/admin/settings" },
   ];
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <aside className="hidden lg:flex w-[264px] min-h-screen flex-col bg-[#fffaf4] border-r border-orange-100">
