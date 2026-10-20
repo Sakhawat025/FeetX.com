@@ -55,6 +55,7 @@ exports.assignRider = async (req, res) => {
           id: riderId,
           role: "RIDER",
           status: true,
+          isAvailable: true,
         },
         select: {
           id: true,

@@ -34,6 +34,7 @@ model User {
   password  String
   role      Role     @default(CUSTOMER)
   status    Boolean  @default(true)
+  isAvailable Boolean @default(true)
   vehicleName String?
   plateNumber String?
   vehicleId   String?

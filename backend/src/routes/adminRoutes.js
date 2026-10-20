@@ -6,6 +6,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 const deliveryWorkflowController = require("../controllers/deliveryWorkflowController");
 const adminAnalyticsController = require("../controllers/adminAnalyticsController");
+const adminRidersController = require("../controllers/adminRidersController");
+
 
 
 router.post(
@@ -55,6 +57,27 @@ router.get(
   authMiddleware,
   allowRoles("ADMIN"),
   adminAnalyticsController.getAnalytics
+);
+
+router.get(
+  "/riders",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminRidersController.listRiders
+);
+
+router.post(
+  "/riders",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminRidersController.createRider
+);
+
+router.patch(
+  "/riders/:id",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminRidersController.updateRider
 );
 
 module.exports = router;

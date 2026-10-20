@@ -47,7 +47,9 @@ const getDashboardStats = async (req, res) => {
         ] = await Promise.all([
             prisma.delivery.count(),
             prisma.user.count({ where: { role: "RIDER" } }),
-            prisma.user.count({ where: { role: "RIDER", status: true } }),
+            prisma.user.count({
+            where: { role: "RIDER", status: true, isAvailable: true }
+            }),
             prisma.delivery.count({ where: { status: { in: ["CONFIRMED", "PICKED_UP", "OUT_FOR_DELIVERY"] } } }),
             prisma.delivery.count({ where: { status: "DELIVERED" } }),
             prisma.delivery.count({ where: { status: "PENDING" } }),
@@ -70,22 +72,34 @@ const getDashboardStats = async (req, res) => {
 };
 
 const getLiveRiders = async (req, res) => {
-    try {
-        const riders = await prisma.user.findMany({
-            where: { role: "RIDER" },
-            select: {
-                id: true,
-                name: true,
-                phone: true,
-                status: true
-            },
-            orderBy: { name: "asc" }
-        });
-        res.json(riders);
-    } catch (error) {
-        console.error("Live riders error:", error);
-        res.status(500).json({ message: "Failed to load riders" });
-    }
+  try {
+    const riders = await prisma.user.findMany({
+      where: { role: "RIDER" },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        status: true,
+        isAvailable: true,
+        _count: {
+          select: {
+            riderDeliveries: { where: { status: { in: ["CONFIRMED", "PICKED_UP", "OUT_FOR_DELIVERY"] } } }
+          }
+        }
+      },
+      orderBy: { name: "asc" }
+    });
+
+    const formattedRiders = riders.map(({ _count, ...rider }) => ({
+      ...rider,
+      workload: _count.riderDeliveries
+    }));
+
+    return res.json(formattedRiders);
+  } catch (error) {
+    console.error("Live riders error:", error);
+    return res.status(500).json({ message: "Failed to load riders" });
+  }
 };
 
 const getDailyDeliveryPerformance = async (req, res) => {

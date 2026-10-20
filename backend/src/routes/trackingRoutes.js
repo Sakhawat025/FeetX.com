@@ -625,6 +625,7 @@ router.get("/fleet-overview", handle(async (req, res) => {
         name: true,
         phone: true,
         status: true,
+        isAvailable: true,
         vehicleName: true,
         plateNumber: true,
         zone: true,
@@ -668,7 +669,13 @@ router.get("/fleet-overview", handle(async (req, res) => {
       activeParcels,
       completedToday: completedMap.get(user.id) || 0,
       rating: ratingMap.get(user.id) ?? null,
-      status: !user.status ? "Account Disabled" : activeParcels > 0 ? "On Delivery" : "Available",
+      status: !user.status
+        ? "Account Disabled"
+        : activeParcels > 0
+        ? "On Delivery"
+        : !user.isAvailable
+        ? "Offline"
+        : "Available",
       location,
     };
   });
