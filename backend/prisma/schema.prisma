@@ -52,6 +52,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   riderLocation RiderLocation?
+
+  assignedVehicle Vehicle?
 }
 
 
@@ -121,4 +123,27 @@ model RiderLocation {
   accuracy   Float?
   capturedAt DateTime?
   updatedAt  DateTime @updatedAt
+}
+
+enum VehicleStatus {
+  ACTIVE
+  IDLE
+  MAINTENANCE
+}
+
+model Vehicle {
+  id             Int           @id @default(autoincrement())
+  name           String
+  plateNumber    String        @unique
+  type           String
+  capacityKg     Float
+  fuelPercent    Int?
+  lastServicedAt DateTime?      @db.Date
+  status         VehicleStatus @default(IDLE)
+
+  riderId        Int?          @unique
+  rider          User?         @relation(fields: [riderId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }

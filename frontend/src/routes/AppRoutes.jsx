@@ -20,6 +20,7 @@ import RiderProfile from "../features/rider/Profile";
 import AdminFleetMap from "../pages/dashboard/AdminFleetMap";
 import AdminAnalytics from "../pages/dashboard/AdminAnalytics";
 import AdminRiders from "../pages/dashboard/AdminRiders";
+import AdminVehicles from "../pages/dashboard/AdminVehicles";
 
 function AppRoutes() {
   return (
@@ -176,6 +177,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminRiders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/vehicles"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminVehicles />
             </ProtectedRoute>
           }
         />
