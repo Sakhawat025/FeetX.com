@@ -608,4 +608,79 @@ router.get("/journey/:id", handle(async (req, res) => {
   });
 }));
 
+// ADMIN: Fleet list, recent GPS and rider performance.
+router.get("/fleet-overview", handle(async (req, res) => {
+  requireRole(req, "ADMIN");
+
+  // Today starts at midnight in Bangladesh.
+  const dhakaNow = new Date(Date.now() + 6 * 60 * 60 * 1000);
+  const todayStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), dhakaNow.getUTCDate()) - 6 * 60 * 60 * 1000);
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  const [users, activeCounts, completedCounts, ratings] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "RIDER" },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        status: true,
+        vehicleName: true,
+        plateNumber: true,
+        zone: true,
+        riderLocation: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.delivery.groupBy({
+      by: ["riderId"],
+      where: { riderId: { not: null }, status: { in: ACTIVE } },
+      _count: { _all: true },
+    }),
+    prisma.delivery.groupBy({
+      by: ["riderId"],
+      where: { riderId: { not: null }, status: "DELIVERED", deliveredAt: { gte: todayStart, lt: tomorrowStart } },
+      _count: { _all: true },
+    }),
+    prisma.delivery.groupBy({
+      by: ["riderId"],
+      where: { riderId: { not: null }, status: "DELIVERED", rating: { not: null } },
+      _avg: { rating: true },
+    }),
+  ]);
+
+  const activeMap = new Map(activeCounts.map((row) => [row.riderId, row._count._all]));
+  const completedMap = new Map(completedCounts.map((row) => [row.riderId, row._count._all]));
+  const ratingMap = new Map(ratings.map((row) => [row.riderId, row._avg.rating]));
+
+  const fleet = users.map((user) => {
+    const activeParcels = activeMap.get(user.id) || 0;
+    const location = user.status && activeParcels > 0 ? publicLocation(user.riderLocation) : null;
+
+    return {
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+      enabled: user.status,
+      vehicleName: user.vehicleName,
+      plateNumber: user.plateNumber,
+      zone: user.zone,
+      activeParcels,
+      completedToday: completedMap.get(user.id) || 0,
+      rating: ratingMap.get(user.id) ?? null,
+      status: !user.status ? "Account Disabled" : activeParcels > 0 ? "On Delivery" : "Available",
+      location,
+    };
+  });
+
+  const riders = fleet.filter((rider) => rider.location).map((rider) => ({ id: rider.id, name: rider.name, ...rider.location }));
+
+  res.json({
+    fleet,
+    riders,
+    message: riders.length ? "" : "No riders are currently sharing a recent GPS location.",
+  });
+}));
+
+
 module.exports = router;

@@ -17,6 +17,8 @@ import AssignedDeliveries from "../features/rider/AssignedDeliveries";
 import RiderLayout from "../features/rider/components/RiderLayout";
 import Navigation from "../features/rider/Navigation";
 import RiderProfile from "../features/rider/Profile";
+import AdminFleetMap from "../pages/dashboard/AdminFleetMap";
+import AdminAnalytics from "../pages/dashboard/AdminAnalytics";
 
 function AppRoutes() {
   return (
@@ -149,6 +151,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["RIDER"]}>
               <RiderLayout><RiderProfile /></RiderLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/fleet-map"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminFleetMap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminAnalytics />
             </ProtectedRoute>
           }
         />

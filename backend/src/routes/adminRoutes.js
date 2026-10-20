@@ -5,6 +5,8 @@ const adminController = require("../controllers/adminController");
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 const deliveryWorkflowController = require("../controllers/deliveryWorkflowController");
+const adminAnalyticsController = require("../controllers/adminAnalyticsController");
+
 
 router.post(
     "/create-rider",
@@ -46,6 +48,13 @@ router.patch(
   authMiddleware,
   allowRoles("ADMIN"),
   deliveryWorkflowController.assignRider
+);
+
+router.get(
+  "/analytics",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminAnalyticsController.getAnalytics
 );
 
 module.exports = router;

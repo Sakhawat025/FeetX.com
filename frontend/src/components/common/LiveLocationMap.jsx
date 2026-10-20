@@ -4,7 +4,14 @@ import "leaflet/dist/leaflet.css";
 
 import { getTracking } from "../../services/trackingApi";
 
-export default function LiveLocationMap({ endpoint }) {
+export default function LiveLocationMap({
+  endpoint,
+  onData,
+  selectedRiderId = null,
+  onSelectRider,
+  showRiderList = true,
+  height = 360,
+}) {
   const elementRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef(null);
@@ -104,6 +111,10 @@ export default function LiveLocationMap({ endpoint }) {
     };
   }, [endpoint]);
 
+  useEffect(() => {
+    onData?.(result?.endpoint === endpoint ? result : null);
+  }, [result, endpoint, onData]);
+
   const riders = result?.endpoint === endpoint
     ? result.riders.filter((rider) => {
         const age = now - new Date(rider.capturedAt).getTime();
@@ -140,11 +151,23 @@ export default function LiveLocationMap({ endpoint }) {
           radius: 10,
           color: "#ffffff",
           weight: 3,
-          fillColor: outdated ? "#9ca3af" : "#ea580c",
+          fillColor:
+            rider.id === selectedRiderId
+              ? "#42200e"
+              : outdated
+              ? "#9ca3af"
+              : "#df7517",
           fillOpacity: 1,
         }
       )
-        .bindTooltip(text)
+        .bindTooltip(text, {
+          permanent: Boolean(onSelectRider),
+          direction: "top",
+          offset: [0, -8],
+        })
+        .on("click", () => {
+          onSelectRider?.(rider.id);
+        })
         .addTo(layer);
     }
 
@@ -164,7 +187,19 @@ export default function LiveLocationMap({ endpoint }) {
 
       centeredRef.current = true;
     }
-  }, [result, now, endpoint]);
+  }, [result, now, endpoint, selectedRiderId, onSelectRider]);
+
+  useEffect(() => {
+    if (!mapRef.current || !selectedRiderId) return;
+
+    const selected = result?.riders?.find((rider) => rider.id === selectedRiderId);
+    if (!selected) return;
+
+    const age = Date.now() - new Date(selected.capturedAt).getTime();
+    if (!Number.isFinite(selected.latitude) || !Number.isFinite(selected.longitude) || !Number.isFinite(age) || age > 120000) return;
+
+    mapRef.current.setView([selected.latitude, selected.longitude], Math.max(mapRef.current.getZoom(), 14));
+  }, [selectedRiderId, result]);
 
   function centerRiders() {
     if (!riders.length || !mapRef.current) return;
@@ -203,9 +238,13 @@ export default function LiveLocationMap({ endpoint }) {
       <div
         ref={elementRef}
         aria-label="Rider location map"
-        className="isolate h-[360px] w-full rounded-xl"
+        className="isolate w-full rounded-2xl"
+        style={{
+          height,
+          maxHeight: "70vh",
+          minHeight: 320,
+        }}
       />
-
       {error && (
         <p role="alert" className="mt-3 text-sm text-red-600">
           {error}
@@ -223,7 +262,7 @@ export default function LiveLocationMap({ endpoint }) {
       )}
 
       <div className="mt-3 space-y-2">
-        {riders.map((rider) => {
+        {showRiderList && riders.map((rider) => {
           const seconds = Math.max(
             0,
             Math.floor(
