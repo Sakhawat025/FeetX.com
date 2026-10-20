@@ -39,7 +39,7 @@ function RiderSidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-orange-100 flex flex-col">
+    <aside className="relative w-full shrink-0 border-r border-orange-100 bg-orange-50 md:fixed md:left-0 md:top-0 md:h-screen md:w-64 md:overflow-y-auto flex flex-col">
       {/* Logo */}
       <div className="h-24 px-6 flex items-center">
         <div>

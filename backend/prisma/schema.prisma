@@ -34,6 +34,10 @@ model User {
   password  String
   role      Role     @default(CUSTOMER)
   status    Boolean  @default(true)
+  vehicleName String?
+  plateNumber String?
+  vehicleId   String?
+  zone        String?
 
   // Customer deliveries
   customerDeliveries Delivery[] @relation("CustomerDeliveries")
@@ -69,6 +73,13 @@ model Delivery {
 
   parcelType String
   parcelWeight Float?
+  assignedAt  DateTime?
+  dueAt       DateTime?
+  deliveredAt DateTime?
+
+  rating      Int?
+  feedback    String?
+  reviewedAt  DateTime?
 
   status DeliveryStatus @default(PENDING)
 

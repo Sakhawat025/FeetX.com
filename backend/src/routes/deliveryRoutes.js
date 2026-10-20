@@ -17,4 +17,8 @@ router.get(
     deliveryController.getCustomerDashboard
 );
 
+const riderProfileController = require("../controllers/riderProfileController");
+router.put("/:id/feedback", authMiddleware, riderProfileController.saveFeedback);
+
+
 module.exports = router;

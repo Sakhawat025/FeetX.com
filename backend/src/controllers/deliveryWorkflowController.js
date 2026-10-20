@@ -84,6 +84,16 @@ exports.assignRider = async (req, res) => {
         data: {
           riderId,
           status: "CONFIRMED",
+          assignedAt: new Date(),
+          dueAt: new Date(
+            Date.now() +
+              (
+                Number.isFinite(Number(process.env.DELIVERY_SLA_HOURS)) &&
+                Number(process.env.DELIVERY_SLA_HOURS) > 0
+                  ? Number(process.env.DELIVERY_SLA_HOURS)
+                  : 24
+              ) * 60 * 60 * 1000
+          ),
         },
       });
 
@@ -209,6 +219,9 @@ exports.updateStatus = async (req, res) => {
         },
         data: {
           status,
+          ...(status === "DELIVERED"
+            ? { deliveredAt: new Date() }
+            : {}),
         },
       });
 

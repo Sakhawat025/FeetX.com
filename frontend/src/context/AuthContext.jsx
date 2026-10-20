@@ -52,8 +52,19 @@ export function AuthProvider({ children }) {
         window.location.replace("/login");
     };
 
+    const updateUser = (changes) => {
+        setUser((previous) => {
+            if (!previous) return previous;
+
+            const next = { ...previous, ...changes };
+            localStorage.setItem("feetx_user", JSON.stringify(next));
+            return next;
+        });
+    };
+
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, loading, updateUser  }}>
             {children}
         </AuthContext.Provider>
     );

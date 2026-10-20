@@ -25,3 +25,13 @@ export const updateDeliveryStatus = async (deliveryId, status, expectedStatus) =
   );
   return response.data;
 };
+
+export const getRiderProfile = async () => {
+  const response = await api.get("/rider/profile");
+  return response.data;
+};
+
+export const updateRiderProfile = async (data) => {
+  const response = await api.patch("/rider/profile", data);
+  return response.data;
+};

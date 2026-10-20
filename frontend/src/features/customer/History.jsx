@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, History as HistoryIcon } from "lucide-react";
 import { getMyDeliveries } from "../../services/deliveryApi";
 import { useNavigate } from "react-router-dom";
+import DeliveryFeedback from "./DeliveryFeedback";
 
 function History() {
   const [deliveries, setDeliveries] = useState([]);
@@ -127,6 +128,16 @@ function History() {
                           <Eye size={15} />
                           View
                         </button>
+                        <DeliveryFeedback
+                          delivery={delivery}
+                          onSaved={(updated) => {
+                            setDeliveries((previous) =>
+                              previous.map((item) =>
+                                item.id === updated.id ? updated : item
+                              )
+                            );
+                          }}
+                        />
                       </td>
                     </tr>
                   ))

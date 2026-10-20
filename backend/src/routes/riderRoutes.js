@@ -8,8 +8,13 @@ const deliveryWorkflowController = require(
 
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
+const riderProfileController = require("../controllers/riderProfileController");
+
 
 router.use(authMiddleware, allowRoles("RIDER"));
+
+router.get("/profile", riderProfileController.getProfile);
+router.patch("/profile", riderProfileController.updateProfile);
 
 router.get(
   "/dashboard-stats",

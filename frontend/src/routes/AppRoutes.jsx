@@ -16,6 +16,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import AssignedDeliveries from "../features/rider/AssignedDeliveries";
 import RiderLayout from "../features/rider/components/RiderLayout";
 import Navigation from "../features/rider/Navigation";
+import RiderProfile from "../features/rider/Profile";
 
 function AppRoutes() {
   return (
@@ -140,6 +141,14 @@ function AppRoutes() {
               <RiderLayout>
                 <Navigation />
               </RiderLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/rider/profile"
+          element={
+            <ProtectedRoute allowedRoles={["RIDER"]}>
+              <RiderLayout><RiderProfile /></RiderLayout>
             </ProtectedRoute>
           }
         />

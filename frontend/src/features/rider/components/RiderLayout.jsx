@@ -4,12 +4,12 @@ import RiderLocationSharing from "./RiderLocationSharing";
 
 function RiderLayout({ children }) {
   return (
-    <div className="min-h-screen bg-orange-50 flex">
+    <div className="min-h-screen bg-orange-50 md:flex">
       {/* Sidebar */}
       <RiderSidebar />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="min-w-0 flex-1 md:ml-64">
         {/* Header */}
         <RiderHeader />
 
