@@ -8,9 +8,7 @@ const deliveryWorkflowController = require("../controllers/deliveryWorkflowContr
 const adminAnalyticsController = require("../controllers/adminAnalyticsController");
 const adminRidersController = require("../controllers/adminRidersController");
 const adminVehiclesController = require("../controllers/adminVehiclesController");
-
-
-
+const adminParcelsController = require("../controllers/adminParcelsController");
 
 router.post(
     "/create-rider",
@@ -101,6 +99,27 @@ router.put(
   authMiddleware,
   allowRoles("ADMIN"),
   adminVehiclesController.saveVehicle
+);
+
+router.get(
+  "/parcels",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminParcelsController.listParcels
+);
+
+router.get(
+  "/parcels/:id",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminParcelsController.getParcel
+);
+
+router.patch(
+  "/parcels/:id/priority",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminParcelsController.updatePriority
 );
 
 module.exports = router;
