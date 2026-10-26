@@ -22,7 +22,7 @@ export const getPendingAssignments = async () => {
 export const assignDeliveryRider = async (deliveryId, riderId) => {
   const response = await api.patch(
     `/admin/deliveries/${deliveryId}/assign`,
-    { riderId: Number(riderId) }
+    { deliveryId: Number(deliveryId), riderId: Number(riderId) }
   );
   return response.data;
 };

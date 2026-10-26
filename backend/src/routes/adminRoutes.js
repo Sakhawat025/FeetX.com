@@ -9,6 +9,8 @@ const adminAnalyticsController = require("../controllers/adminAnalyticsControlle
 const adminRidersController = require("../controllers/adminRidersController");
 const adminVehiclesController = require("../controllers/adminVehiclesController");
 const adminParcelsController = require("../controllers/adminParcelsController");
+const smartDispatchController = require("../controllers/smartDispatchController");
+
 
 router.post(
     "/create-rider",
@@ -49,7 +51,7 @@ router.patch(
   "/deliveries/:id/assign",
   authMiddleware,
   allowRoles("ADMIN"),
-  deliveryWorkflowController.assignRider
+  smartDispatchController.assignRider
 );
 
 router.get(
@@ -120,6 +122,13 @@ router.patch(
   authMiddleware,
   allowRoles("ADMIN"),
   adminParcelsController.updatePriority
+);
+
+router.get(
+  "/smart-dispatch",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  smartDispatchController.getDispatch
 );
 
 module.exports = router;

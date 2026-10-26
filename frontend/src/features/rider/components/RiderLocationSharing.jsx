@@ -157,9 +157,9 @@ export default function RiderLocationSharing() {
       </h2>
 
       <p className="mt-2 text-sm text-gray-600">
-        While enabled, Admin and customers with your active
-        assigned parcels can see your location.
-        Keep this page open.
+        While sharing is enabled, Admin can use your live location for
+        delivery assignments. Customers can see your location only for
+        their active assigned parcels. Keep this page open while on duty.
       </p>
 
       <p className="mt-3 text-sm font-medium">

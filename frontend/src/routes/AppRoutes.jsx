@@ -22,6 +22,7 @@ import AdminAnalytics from "../pages/dashboard/AdminAnalytics";
 import AdminRiders from "../pages/dashboard/AdminRiders";
 import AdminVehicles from "../pages/dashboard/AdminVehicles";
 import AdminParcels from "../pages/dashboard/AdminParcels";
+import AdminSmartDispatch from "../pages/dashboard/AdminSmartDispatch";
 
 function AppRoutes() {
   return (
@@ -194,6 +195,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminParcels />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/smart-dispatch"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminSmartDispatch />
             </ProtectedRoute>
           }
         />

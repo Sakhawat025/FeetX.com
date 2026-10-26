@@ -117,16 +117,25 @@ router.use(async (req, res, next) => {
 router.post("/session", handle(async (req, res) => {
   requireRole(req, "RIDER");
 
-  const activeDelivery = await prisma.delivery.findFirst({
+  const canShare = await prisma.user.findFirst({
     where: {
-      riderId: req.user.id,
-      status: { in: ACTIVE },
+      id: req.user.id,
+      role: "RIDER",
+      status: true,
+      OR: [
+        { isAvailable: true },
+        {
+          riderDeliveries: {
+            some: { status: { in: ACTIVE } },
+          },
+        },
+      ],
     },
     select: { id: true },
   });
 
-  if (!activeDelivery) {
-    fail(409, "You have no active assigned deliveries");
+  if (!canShare) {
+    fail(409, "Enable availability before starting on-duty GPS sharing.");
   }
 
   const sessionId = randomUUID();
@@ -222,11 +231,14 @@ router.put("/location", handle(async (req, res) => {
         is: {
           role: "RIDER",
           status: true,
-          riderDeliveries: {
-            some: {
-              status: { in: ACTIVE },
+          OR: [
+            { isAvailable: true },
+            {
+              riderDeliveries: {
+                some: { status: { in: ACTIVE } },
+              },
             },
-          },
+          ],
         },
       },
       OR: [
@@ -245,7 +257,7 @@ router.put("/location", handle(async (req, res) => {
   if (result.count !== 1) {
     fail(
       409,
-      "Sharing session ended, GPS sample was repeated, or no active delivery remains"
+      "Sharing session ended, GPS sample was repeated, or rider is no longer on duty"
     );
   }
 
