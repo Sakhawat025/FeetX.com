@@ -11,6 +11,7 @@ const adminVehiclesController = require("../controllers/adminVehiclesController"
 const adminParcelsController = require("../controllers/adminParcelsController");
 const smartDispatchController = require("../controllers/smartDispatchController");
 const routeOptimizationController = require("../controllers/routeOptimizationController");
+const adminReportsController = require("../controllers/adminReportsController");
 
 
 router.post(
@@ -144,6 +145,13 @@ router.post(
   authMiddleware,
   allowRoles("ADMIN"),
   routeOptimizationController.reorderStops
+);
+
+router.get(
+  "/reports",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminReportsController.getReports
 );
 
 module.exports = router;
