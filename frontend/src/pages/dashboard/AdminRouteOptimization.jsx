@@ -570,7 +570,7 @@ export default function AdminRouteOptimization() {
                                   stop.distanceFromPrev
                                 )}{" "}
                                 km · Driving ETA{" "}
-                                {time(stop.eta)}
+                                {time(stop.eta)} 
                               </p>
                             )}
                           </div>
