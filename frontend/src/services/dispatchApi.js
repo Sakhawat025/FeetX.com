@@ -13,7 +13,7 @@ export async function getSmartDispatch(deliveryId, signal) {
 export async function assignSmartRider(deliveryId, riderId) {
   const response = await api.patch(
     `/admin/deliveries/${deliveryId}/assign`,
-    { riderId },
+    { deliveryId: Number(deliveryId), riderId: Number(riderId) },
     { timeout: 20000 }
   );
 

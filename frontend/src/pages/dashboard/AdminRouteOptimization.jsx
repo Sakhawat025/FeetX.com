@@ -1,410 +1,593 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+
 import {
-  ArrowLeft,
-  Clock,
-  Fuel,
-  MapPin,
-  Package,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
   Route,
-  Timer,
-  TrendingDown,
 } from "lucide-react";
 
 import AdminLayout from "../../features/admin/components/AdminLayout";
 import RouteOptimizationMap from "../../features/admin/components/RouteOptimizationMap";
-import { useAuth } from "../../context/AuthContext";
-import { getRouteOptimization } from "../../services/routeOptimizationApi";
 
-function initials(name = "") {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0))
-    .join("")
-    .toUpperCase();
+import {
+  getRouteOptimization,
+  reorderStops,
+} from "../../services/routeOptimizationApi";
+
+function number(value) {
+  return Number.isFinite(value)
+    ? value.toFixed(2)
+    : "—";
 }
 
-function errorMessage(error) {
-  return error.response?.data?.message || "Request failed. Please try again.";
+function message(error) {
+  return (
+    error.response?.data?.message ||
+    "Could not load routes. Please retry."
+  );
 }
 
-function formatTime(isoString) {
-  if (!isoString) return "";
-
-  try {
-    return new Date(isoString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return "";
-  }
+function time(value) {
+  return new Date(value).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function AdminRouteOptimization() {
-  const { user, logout } = useAuth();
-
   const [data, setData] = useState(null);
-  const [selectedRiderId, setSelectedRiderId] = useState(null);
+  const [riderId, setRiderId] = useState(null);
   const [reload, setReload] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
 
-  const busyRef = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [mode, setMode] = useState("both");
+  const [draft, setDraft] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const request = useRef(0);
+  const reorderController = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    const version = ++request.current;
 
+    reorderController.current?.abort();
+
+    setBusy(false);
     setLoading(true);
-    setLoadError("");
+    setError("");
+    setData(null);
+    setDraft([]);
 
-    async function load() {
-      if (busyRef.current) return;
+    getRouteOptimization(riderId, controller.signal)
+      .then((result) => {
+        if (request.current !== version) {
+          return;
+        }
 
-      busyRef.current = true;
+        setData(result);
 
-      try {
-        const result = await getRouteOptimization(
-          selectedRiderId,
-          controller.signal
+        setDraft(
+          result.optimization?.manualRoute?.sequence.slice(1) ||
+            []
         );
-
-        if (!controller.signal.aborted) {
-          setData(result);
-          setLoadError("");
+      })
+      .catch((err) => {
+        if (
+          request.current === version &&
+          !controller.signal.aborted
+        ) {
+          setError(message(err));
         }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setLoadError(errorMessage(error));
-        }
-      } finally {
-        busyRef.current = false;
-
-        if (!controller.signal.aborted) {
+      })
+      .finally(() => {
+        if (request.current === version) {
           setLoading(false);
         }
-      }
-    }
-
-    load();
+      });
 
     return () => {
       controller.abort();
+      reorderController.current?.abort();
+      ++request.current;
     };
-  }, [selectedRiderId, reload]);
+  }, [riderId, reload]);
 
   const opt = data?.optimization;
-  const rider = data?.rider;
-  const riders = data?.riders || [];
-  const sequence = opt?.sequence || [];
 
-  const riderDisplayName =
-    rider && rider.vehicleName
-      ? `${rider.name} - ${rider.vehicleName}`
-      : rider?.name || "";
+  const ready =
+    !!opt?.manualRoute &&
+    !opt.blocker;
+
+  const dirty =
+    ready &&
+    draft.some(
+      (stop, index) =>
+        stop.key !==
+        opt.manualRoute.sequence[index + 1]?.key
+    );
+
+  function moved(index, direction) {
+    const next = [...draft];
+    const destination = index + direction;
+
+    if (
+      destination < 0 ||
+      destination >= next.length
+    ) {
+      return null;
+    }
+
+    [next[index], next[destination]] = [
+      next[destination],
+      next[index],
+    ];
+
+    const seen = new Set();
+
+    for (const stop of next) {
+      if (
+        stop.requires &&
+        !seen.has(stop.requires)
+      ) {
+        return null;
+      }
+
+      seen.add(stop.key);
+    }
+
+    return next;
+  }
+
+  async function recalculate() {
+    const version = ++request.current;
+    const controller = new AbortController();
+
+    reorderController.current = controller;
+
+    setBusy(true);
+    setError("");
+
+    try {
+      const result = await reorderStops(
+        data.rider.id,
+        draft.map((stop) => stop.key),
+        controller.signal
+      );
+
+      if (request.current !== version) {
+        return;
+      }
+
+      setData(result);
+
+      setDraft(
+        result.optimization?.manualRoute?.sequence.slice(1) ||
+          []
+      );
+    } catch (err) {
+      if (
+        request.current === version &&
+        !controller.signal.aborted
+      ) {
+        setError(message(err));
+      }
+    } finally {
+      if (request.current === version) {
+        setBusy(false);
+      }
+    }
+  }
+
+  const sequence =
+    mode === "manual"
+      ? opt?.manualRoute?.sequence
+      : opt?.optimizedRoute?.sequence;
 
   return (
     <AdminLayout>
       <section className="min-h-screen bg-[#fdf3e7] p-4 text-[#40200f] sm:p-6 xl:p-8">
-        <Link
-          to="/admin/dashboard"
-          className="mb-5 inline-flex items-center gap-2 text-sm lg:hidden"
-        >
-          <ArrowLeft size={17} />
-          Dashboard
-        </Link>
-
-        {/* Header */}
-        <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">Operations</p>
+            <p className="text-sm text-slate-500">
+              Operations / Route planning
+            </p>
+
             <h1 className="mt-1 text-3xl font-bold">
-              Route Optimization 👋
+              Route & Optimization
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Multi-stop route planning for maximum delivery efficiency.
+
+            <p className="mt-2 text-sm text-slate-600">
+              Compare the same stops from the same rider GPS
+              start.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => setReload((v) => v + 1)}
-              aria-label="Refresh optimization"
-              className="rounded-full border border-orange-100 bg-white
-                p-3 text-orange-600 disabled:opacity-50"
-            >
-              <RefreshCw size={18} />
-            </button>
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#40200f] font-semibold text-white">
-              {initials(user?.name || "Admin")}
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold">
-                {user?.name || "Admin"}
-              </p>
-              <button
-                type="button"
-                onClick={logout}
-                className="text-xs text-orange-600 hover:underline"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setReload((value) => value + 1)}
+            disabled={loading || busy}
+            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 shadow-sm disabled:opacity-50"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
         </header>
 
-        {/* Error */}
-        {loadError && (
+        {error && (
           <div
             role="alert"
-            className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700"
+            className="mb-4 rounded-xl bg-red-50 p-4 text-red-700"
           >
-            {loadError}
+            {error}
+
+            <button
+              type="button"
+              onClick={() => {
+                setRiderId(null);
+                setReload((value) => value + 1);
+              }}
+              className="ml-2 underline"
+            >
+              Reload rider list
+            </button>
           </div>
         )}
 
         {loading ? (
-          <div
+          <p
             role="status"
-            className="rounded-3xl bg-white p-12 text-center text-slate-500"
+            className="rounded-2xl bg-white p-8"
           >
-            Loading route optimization data...
-          </div>
-        ) : !rider ? (
-          <div className="rounded-3xl bg-white p-12 text-center">
-            <Route size={48} className="mx-auto text-orange-300" />
-            <p className="mt-4 text-sm text-slate-500">
-              No riders with active deliveries and fresh GPS found.
-            </p>
-            <p className="mt-2 text-xs text-slate-400">
-              Riders need assigned deliveries and active location sharing.
-            </p>
-          </div>
+            Calculating road routes…
+          </p>
         ) : (
           <>
-            {/* Rider selector (if multiple riders) */}
-            {riders.length > 1 && (
-              <div className="mb-5 flex flex-wrap items-center gap-2">
-                <label className="text-sm font-medium">Rider:</label>
+            {!!data?.riders?.length && (
+              <label className="mb-5 flex items-center gap-3 text-sm font-semibold">
+                Rider
 
                 <select
-                  value={rider.id}
-                  onChange={(e) =>
-                    setSelectedRiderId(Number(e.target.value))
+                  value={data.rider?.id || ""}
+                  disabled={busy}
+                  onChange={(event) =>
+                    setRiderId(Number(event.target.value))
                   }
-                  className="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm"
+                  className="max-w-full rounded-xl border border-orange-200 bg-white p-3"
                 >
-                  {riders.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                      {r.vehicleName ? ` - ${r.vehicleName}` : ""}
-                      {` (${r.activeDeliveries} stops)`}
+                  {data.riders.map((rider) => (
+                    <option
+                      key={rider.id}
+                      value={rider.id}
+                    >
+                      {rider.name} · {rider.activeDeliveries}{" "}
+                      parcels
+                      {rider.vehicleName
+                        ? ` · ${rider.vehicleName}`
+                        : ""}
                     </option>
                   ))}
                 </select>
+              </label>
+            )}
+
+            {data && !data.rider && (
+              <p className="rounded-2xl bg-white p-8">
+                No riders with active assigned deliveries.
+              </p>
+            )}
+
+            {opt?.blocker && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"
+              >
+                <b>Route cannot be calculated</b>
+
+                <p className="mt-2">
+                  {opt.blocker}
+                </p>
+
+                <p className="mt-2 text-sm">
+                  Distance is unavailable until this is fixed.
+                </p>
               </div>
             )}
 
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-              {/* Left: Map */}
-              <div className="space-y-5">
-                <section className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm">
-                  <h2 className="mb-4 text-base font-bold">
-                    Optimized Multi-Stop Route
-                  </h2>
-
-                  <RouteOptimizationMap
-                    sequence={sequence}
-                    riderName={riderDisplayName}
-                  />
-                </section>
-              </div>
-
-              {/* Right: Stats sidebar */}
-              <div className="space-y-5">
-                {/* Distance Comparison */}
-                <section className="rounded-3xl bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Distance Comparison
-                  </h3>
-
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">
-                        Manual Route
-                      </span>
-                      <span className="text-lg font-bold">
-                        {opt.manualDistanceKm} km
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between rounded-xl bg-orange-50 px-4 py-3">
-                      <span className="text-sm font-semibold text-orange-700">
-                        Optimized Route
-                      </span>
-                      <span className="text-lg font-bold text-orange-700">
-                        {opt.optimizedDistanceKm} km
-                      </span>
-                    </div>
-
-                    {opt.savingsPercent > 0 && (
-                      <p className="flex items-center gap-1.5 text-xs text-emerald-600">
-                        <TrendingDown size={14} />
-                        {opt.savingsPercent}% shorter distance
-                      </p>
-                    )}
-                  </div>
-                </section>
-
-                {/* Route Summary */}
-                <section className="rounded-3xl bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Route Summary
-                  </h3>
-
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
-                        <Package size={18} className="text-orange-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">
-                          Total Stops
-                        </p>
-                        <p className="text-lg font-bold">
-                          {opt.totalStops}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
-                        <Clock size={18} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Est. Time</p>
-                        <p className="text-lg font-bold">
-                          {opt.estimatedTimeMin} min
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                        <Fuel size={18} className="text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">
-                          Fuel Saved
-                        </p>
-                        <p className="text-lg font-bold">
-                          ~{opt.fuelSavedBDT} BDT
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50">
-                        <Timer size={18} className="text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">
-                          Time Saved
-                        </p>
-                        <p className="text-lg font-bold">
-                          {opt.timeSavedMin} min
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Delivery Sequence */}
-                <section className="rounded-3xl bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Delivery Sequence
-                  </h3>
-
-                  <div className="mt-4 space-y-0">
-                    {sequence.map((stop, index) => (
-                      <div
-                        key={stop.order}
-                        className="relative flex items-start gap-3 pb-4"
+            {ready && (
+              <>
+                <div className="mb-5 grid gap-4 sm:grid-cols-3">
+                  {[
+                    [
+                      "Manual route",
+                      `${number(opt.manualDistanceKm)} km`,
+                      `${number(
+                        opt.manualTimeMin
+                      )} min estimated driving`,
+                      "text-blue-700",
+                    ],
+                    [
+                      "Optimized route",
+                      `${number(
+                        opt.optimizedDistanceKm
+                      )} km`,
+                      `${number(
+                        opt.estimatedTimeMin
+                      )} min estimated driving`,
+                      "text-orange-700",
+                    ],
+                    [
+                      "Distance saved",
+                      `${number(opt.savingsKm)} km`,
+                      `${number(
+                        opt.savingsPercent
+                      )}% shorter · ~${number(
+                        opt.fuelSavedBDT
+                      )} BDT fuel saved`,
+                      "text-emerald-700",
+                    ],
+                  ].map(
+                    ([label, value, detail, color]) => (
+                      <section
+                        key={label}
+                        className="rounded-2xl bg-white p-5 shadow-sm"
                       >
-                        {/* Vertical line connector */}
-                        {index < sequence.length - 1 && (
-                          <div className="absolute left-[14px] top-[30px] h-[calc(100%-22px)] w-0.5 bg-orange-200" />
-                        )}
-
-                        {/* Step number */}
-                        <div
-                          className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
-                            stop.type === "start"
-                              ? "bg-emerald-600"
-                              : "bg-orange-600"
-                          }`}
+                        <p
+                          className={`text-sm font-semibold ${color}`}
                         >
-                          {stop.type === "start" ? "✓" : index}
-                        </div>
+                          {label}
+                        </p>
 
-                        {/* Stop details */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold leading-tight">
-                              {stop.trackingId
-                                ? `#${stop.trackingId} - ${stop.address}`
-                                : stop.label}
+                        <p
+                          className={`my-2 text-3xl font-bold ${color}`}
+                        >
+                          {value}
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          {detail}
+                        </p>
+                      </section>
+                    )
+                  )}
+                </div>
+
+                <p className="mb-4 text-sm text-slate-600">
+                  {opt.note} {opt.totalStops} stops,
+                  excluding start.{" "}
+                  {opt.timeSavedMin < 0
+                    ? `${number(
+                        -opt.timeSavedMin
+                      )} min longer driving time on the shorter route.`
+                    : `${number(
+                        opt.timeSavedMin
+                      )} min estimated driving time saved.`}
+                </p>
+
+                <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+                  <div className="space-y-5">
+                    <section className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="flex items-center gap-2 font-bold">
+                          <Route size={18} />
+                          Road path comparison
+                        </h2>
+
+                        <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                          {[
+                            "both",
+                            "manual",
+                            "optimized",
+                          ].map((value) => (
+                            <button
+                              type="button"
+                              key={value}
+                              aria-pressed={mode === value}
+                              onClick={() => setMode(value)}
+                              className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                                mode === value
+                                  ? "bg-white shadow-sm"
+                                  : ""
+                              }`}
+                            >
+                              {value === "both"
+                                ? "Compare both"
+                                : value === "manual"
+                                  ? "Manual"
+                                  : "Optimized"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <RouteOptimizationMap
+                        manualRoute={opt.manualRoute}
+                        optimizedRoute={opt.optimizedRoute}
+                        mode={mode}
+                        riderName={data.rider.name}
+                      />
+
+                      <div className="mt-3 flex flex-wrap gap-4 text-xs">
+                        <span className="font-semibold text-blue-700">
+                          Blue dashed: Manual
+                        </span>
+
+                        <span className="font-semibold text-orange-700">
+                          Orange: Optimized
+                        </span>
+
+                        <span className="text-slate-500">
+                          Markers follow{" "}
+                          {mode === "manual"
+                            ? "manual"
+                            : "optimized"}{" "}
+                          stop order. S = GPS start.
+                        </span>
+                      </div>
+
+                      <p className="mt-3 text-xs text-slate-500">
+                        {opt.distanceSource}. Open route, no
+                        return trip. Paths can share roads;
+                        switch views to inspect each. Times
+                        exclude traffic and stop handling.
+                        Fuel estimate: 4.50 BDT/km.
+                      </p>
+                    </section>
+
+                    <section className="rounded-2xl bg-white p-5 shadow-sm">
+                      <h2 className="font-bold">
+                        Manual stop order
+                      </h2>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Initially ordered by assignment time.
+                        Move stops and recalculate to compare.
+                        Pickup must stay before its delivery.
+                        This is a planning preview, not a
+                        saved rider dispatch.
+                      </p>
+
+                      <ol className="my-4 space-y-2">
+                        {draft.map((stop, index) => (
+                          <li
+                            key={stop.key}
+                            className="flex items-center gap-3 rounded-xl border border-slate-100 p-3"
+                          >
+                            <span className="font-bold text-blue-700">
+                              {index + 1}
+                            </span>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold">
+                                {stop.label}
+                              </p>
+
+                              <p className="break-words text-xs text-slate-500">
+                                {stop.address}
+                              </p>
+                            </div>
+
+                            {[-1, 1].map((direction) => (
+                              <button
+                                type="button"
+                                key={direction}
+                                disabled={
+                                  busy ||
+                                  !moved(index, direction)
+                                }
+                                onClick={() =>
+                                  setDraft(
+                                    moved(index, direction)
+                                  )
+                                }
+                                aria-label={`Move ${
+                                  stop.label
+                                } ${
+                                  direction === -1
+                                    ? "up"
+                                    : "down"
+                                }`}
+                                className="rounded-lg border p-2 disabled:opacity-25"
+                              >
+                                {direction === -1 ? (
+                                  <ArrowUp size={15} />
+                                ) : (
+                                  <ArrowDown size={15} />
+                                )}
+                              </button>
+                            ))}
+                          </li>
+                        ))}
+                      </ol>
+
+                      {dirty && (
+                        <p
+                          role="status"
+                          className="mb-3 text-sm text-amber-700"
+                        >
+                          Order changed. Map and distances
+                          still show the last calculation.
+                        </p>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={busy || !dirty}
+                        onClick={recalculate}
+                        className="rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                      >
+                        {busy
+                          ? "Calculating…"
+                          : "Recalculate comparison"}
+                      </button>
+                    </section>
+                  </div>
+
+                  <section className="rounded-2xl bg-white p-5 shadow-sm">
+                    <h2 className="font-bold">
+                      {mode === "manual"
+                        ? "Manual"
+                        : "Optimized"}{" "}
+                      stop sequence
+                    </h2>
+
+                    <ol className="mt-4 space-y-3">
+                      {sequence.map((stop) => (
+                        <li
+                          key={stop.key}
+                          className="flex gap-3 border-b border-slate-100 pb-3"
+                        >
+                          <span
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
+                              stop.type === "start"
+                                ? "bg-emerald-600"
+                                : mode === "manual"
+                                  ? "bg-blue-600"
+                                  : "bg-orange-600"
+                            }`}
+                          >
+                            {stop.type === "start"
+                              ? "S"
+                              : stop.order}
+                          </span>
+
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">
+                              {stop.label}
                             </p>
 
-                            <span className="shrink-0 text-xs text-slate-400">
-                              {stop.type === "start"
-                                ? "Start"
-                                : formatTime(stop.eta)}
-                            </span>
+                            <p className="mt-1 break-words text-xs text-slate-500">
+                              {stop.address}
+                            </p>
+
+                            {stop.type !== "start" && (
+                              <p className="mt-2 text-xs text-slate-600">
+                                +
+                                {number(
+                                  stop.distanceFromPrev
+                                )}{" "}
+                                km · Driving ETA{" "}
+                                {time(stop.eta)}
+                              </p>
+                            )}
                           </div>
+                        </li>
+                      ))}
+                    </ol>
 
-                          {stop.priority === "EXPRESS" && (
-                            <span className="mt-1 inline-block rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
-                              EXPRESS
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {/* Blocker notice */}
-                {opt.blocker && (
-                  <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
-                    <MapPin
-                      size={16}
-                      className="mb-1 inline text-amber-600"
-                    />{" "}
-                    {opt.blocker}
-                  </div>
-                )}
-
-                {data.refreshedAt && (
-                  <p className="text-xs text-slate-400">
-                    Last refreshed:{" "}
-                    {new Date(data.refreshedAt).toLocaleTimeString()}
-                  </p>
-                )}
-              </div>
-            </div>
+                    <p className="mt-4 text-xs text-slate-400">
+                      Calculated: {time(data.refreshedAt)}
+                    </p>
+                  </section>
+                </div>
+              </>
+            )}
           </>
         )}
       </section>
     </AdminLayout>
   );
 }
-
