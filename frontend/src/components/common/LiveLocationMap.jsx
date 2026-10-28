@@ -161,7 +161,10 @@ export default function LiveLocationMap({
         }
       )
         .bindTooltip(text, {
-          permanent: Boolean(onSelectRider),
+          permanent:
+            endpoint === "/tracking/fleet" ||
+            endpoint === "/tracking/fleet-overview" ||
+            Boolean(onSelectRider),
           direction: "top",
           offset: [0, -8],
         })

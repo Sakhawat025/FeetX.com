@@ -333,11 +333,6 @@ router.get("/fleet", handle(async (req, res) => {
     where: {
       role: "RIDER",
       status: true,
-      riderDeliveries: {
-        some: {
-          status: { in: ACTIVE },
-        },
-      },
     },
     select: {
       id: true,
@@ -668,7 +663,9 @@ router.get("/fleet-overview", handle(async (req, res) => {
 
   const fleet = users.map((user) => {
     const activeParcels = activeMap.get(user.id) || 0;
-    const location = user.status && activeParcels > 0 ? publicLocation(user.riderLocation) : null;
+    const location = user.status
+      ? publicLocation(user.riderLocation)
+      : null;
 
     return {
       id: user.id,
