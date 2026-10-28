@@ -223,8 +223,9 @@ function FleetChart({ fleet }) {
       />
 
       <p className="mt-5 text-xs leading-5 text-slate-400">
-        Active means an enabled rider with at least one active parcel.
-        Utilization excludes disabled accounts.
+        Active means an enabled rider sharing GPS updated within
+        the last 2 minutes. Idle means an enabled rider without
+        recent shared GPS. Utilization excludes disabled accounts.
       </p>
     </>
   );
@@ -504,7 +505,7 @@ export default function AdminAnalytics() {
               <StatCard
                 title="Fleet Utilization"
                 value={format(data.fleet.utilization, "%")}
-                note={`${data.fleet.active} of ${data.fleet.enabled} enabled riders handling deliveries`}
+                note={`${data.fleet.active} of ${data.fleet.enabled} enabled riders sharing recent GPS`}
                 icon={Gauge}
                 color="bg-orange-50 text-orange-600"
               />

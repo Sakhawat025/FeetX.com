@@ -134,7 +134,19 @@ exports.getAnalytics = async (req, res) => {
         [
           prisma.user.findMany({
             where: { role: "RIDER" },
-            select: { id: true, name: true, status: true },
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              riderLocation: {
+                select: {
+                  sessionId: true,
+                  latitude: true,
+                  longitude: true,
+                  capturedAt: true,
+                },
+              },
+            },
             orderBy: { name: "asc" },
           }),
           prisma.delivery.findMany({
@@ -188,9 +200,28 @@ exports.getAnalytics = async (req, res) => {
     );
 
     const enabledRiders = riders.filter((rider) => rider.status);
-    const activeRiders = enabledRiders.filter(
-      (rider) => (workloadMap.get(rider.id) || 0) > 0
-    ).length;
+    const now = Date.now();
+
+    const activeRiders = enabledRiders.filter((rider) => {
+      const location = rider.riderLocation;
+
+      if (
+        !location?.sessionId ||
+        !Number.isFinite(location.latitude) ||
+        !Number.isFinite(location.longitude) ||
+        !location.capturedAt
+      ) {
+        return false;
+      }
+
+      const age = now - new Date(location.capturedAt).getTime();
+
+      return (
+        Number.isFinite(age) &&
+        age >= -10000 &&
+        age <= 120000
+      );
+    }).length;
 
     const fleet = {
       active: activeRiders,
