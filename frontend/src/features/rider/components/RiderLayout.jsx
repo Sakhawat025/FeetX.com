@@ -2,19 +2,15 @@ import RiderSidebar from "./RiderSidebar";
 import RiderHeader from "./RiderHeader";
 import RiderLocationSharing from "./RiderLocationSharing";
 
-function RiderLayout({ children }) {
+export default function RiderLayout({ children }) {
   return (
     <div className="min-h-screen bg-orange-50 md:flex">
-      {/* Sidebar */}
       <RiderSidebar />
 
-      {/* Main Content */}
       <div className="min-w-0 flex-1 md:ml-64">
-        {/* Header */}
         <RiderHeader />
 
-        {/* Page Content */}
-        <main className="px-6 py-5">
+        <main className="px-3 pb-6 pt-3 sm:px-6">
           <RiderLocationSharing />
           {children}
         </main>
@@ -22,5 +18,3 @@ function RiderLayout({ children }) {
     </div>
   );
 }
-
-export default RiderLayout;

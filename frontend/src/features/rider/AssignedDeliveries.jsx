@@ -131,7 +131,7 @@ export default function AssignedDeliveries() {
   });
 
   return (
-    <section>
+    <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#4b2100]">
@@ -188,7 +188,12 @@ export default function AssignedDeliveries() {
           Loading deliveries...
         </p>
       ) : (
-        <div className="space-y-5">
+        <div
+          role="region"
+          aria-label="Assigned deliveries list"
+          tabIndex={0}
+          className="rider-delivery-scroll space-y-5 rounded-xl border border-orange-100 bg-orange-50/40 p-3 focus-visible:outline-2 focus-visible:outline-orange-500"
+        >
           {!error && visible.length === 0 && (
             <p className="rounded-2xl bg-white p-6 text-gray-500">
               No deliveries found.

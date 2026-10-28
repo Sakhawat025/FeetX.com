@@ -8,3 +8,33 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* Independent scrolling for assigned deliveries */
+.rider-delivery-scroll {
+  max-height: 560px;
+  max-height: min(560px, 65dvh);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #ea580c #fff1e6;
+}
+
+/* Chrome, Edge and Safari */
+.rider-delivery-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rider-delivery-scroll::-webkit-scrollbar-track {
+  background: #fff1e6;
+  border-radius: 999px;
+}
+
+.rider-delivery-scroll::-webkit-scrollbar-thumb {
+  background: #ea580c;
+  border: 2px solid #fff1e6;
+  border-radius: 999px;
+}
+
+.rider-delivery-scroll::-webkit-scrollbar-thumb:hover {
+  background: #c2410c;
+}
