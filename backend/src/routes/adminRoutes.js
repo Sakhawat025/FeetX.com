@@ -12,6 +12,7 @@ const adminParcelsController = require("../controllers/adminParcelsController");
 const smartDispatchController = require("../controllers/smartDispatchController");
 const routeOptimizationController = require("../controllers/routeOptimizationController");
 const adminReportsController = require("../controllers/adminReportsController");
+const adminSettingsController = require("../controllers/adminSettingsController");
 
 
 router.post(
@@ -152,6 +153,20 @@ router.get(
   authMiddleware,
   allowRoles("ADMIN"),
   adminReportsController.getReports
+);
+
+router.get(
+  "/settings",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminSettingsController.getSettings
+);
+
+router.put(
+  "/settings",
+  authMiddleware,
+  allowRoles("ADMIN"),
+  adminSettingsController.updateSettings
 );
 
 module.exports = router;

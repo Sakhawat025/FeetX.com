@@ -41,103 +41,11 @@ async function requireActiveUser(tx, userId, role) {
   }
 }
 
-// ADMIN: Assign a pending parcel to an active rider.
-exports.assignRider = async (req, res) => {
-  try {
-    const deliveryId = positiveId(req.params.id);
-    const riderId = positiveId(req.body.riderId);
-
-    const delivery = await prisma.$transaction(async (tx) => {
-      await requireActiveUser(tx, req.user.id, "ADMIN");
-
-      const rider = await tx.user.findFirst({
-        where: {
-          id: riderId,
-          role: "RIDER",
-          status: true,
-          isAvailable: true,
-        },
-        select: {
-          id: true,
-          name: true,
-        },
-      });
-
-      if (!rider) {
-        fail(400, "Select an active rider");
-      }
-
-      const existing = await tx.delivery.findUnique({
-        where: { id: deliveryId },
-      });
-
-      if (!existing) {
-        fail(404, "Delivery not found");
-      }
-
-      // Conditional update prevents two admins assigning the same parcel at the same time.
-      const result = await tx.delivery.updateMany({
-        where: {
-          id: deliveryId,
-          riderId: null,
-          status: { in: ["PENDING", "CONFIRMED"] },
-        },
-        data: {
-          riderId,
-          status: "CONFIRMED",
-          assignedAt: new Date(),
-          dueAt: new Date(
-            Date.now() +
-              (
-                Number.isFinite(Number(process.env.DELIVERY_SLA_HOURS)) &&
-                Number(process.env.DELIVERY_SLA_HOURS) > 0
-                  ? Number(process.env.DELIVERY_SLA_HOURS)
-                  : 24
-              ) * 60 * 60 * 1000
-          ),
-        },
-      });
-
-      if (result.count !== 1) {
-        fail(409, "This delivery is already assigned or cannot be assigned");
-      }
-
-      await tx.notification.createMany({
-        data: [
-          {
-            userId: existing.customerId,
-            title: "Rider Assigned",
-            message: `${rider.name} has been assigned to parcel ${existing.trackingId}.`,
-            type: "DELIVERY",
-          },
-          {
-            userId: rider.id,
-            title: "New Delivery Assigned",
-            message: `Parcel ${existing.trackingId} has been assigned to you.`,
-            type: "DELIVERY",
-          },
-        ],
-      });
-
-      return tx.delivery.findUnique({
-        where: { id: deliveryId },
-        include: {
-          rider: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-            },
-          },
-        },
-      });
-    });
-
-    return res.json(delivery);
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
+// ADMIN: Shared assignment handler.
+// Applies dispatch settings, capacity checks,
+// assignment timestamps and notifications.
+exports.assignRider =
+  require("./smartDispatchController").assignRider;
 
 // RIDER: List only the logged-in rider's deliveries.
 exports.getAssignedDeliveries = async (req, res) => {

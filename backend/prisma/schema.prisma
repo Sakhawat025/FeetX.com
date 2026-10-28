@@ -150,6 +150,21 @@ model Vehicle {
   updatedAt      DateTime      @updatedAt
 }
 
+model PlatformSettings {
+  id                        Int      @id @default(1)
+  maxActiveParcels           Int      @default(4)
+  autoAssignmentRadiusKm    Float    @default(5)
+  priorityDeliveryBufferMin Int      @default(15)
+
+  companyName   String @default("FleetX Logistics")
+  supportEmail  String @default("")
+  operatingCity String @default("Dhaka, Bangladesh")
+
+  version   Int      @default(1)
+  updatedBy Int?
+  updatedAt DateTime @updatedAt
+}
+
 enum ParcelPriority {
   STANDARD
   EXPRESS

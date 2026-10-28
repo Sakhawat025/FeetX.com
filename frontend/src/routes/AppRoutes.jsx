@@ -25,6 +25,7 @@ import AdminParcels from "../pages/dashboard/AdminParcels";
 import AdminSmartDispatch from "../pages/dashboard/AdminSmartDispatch";
 import AdminRouteOptimization from "../pages/dashboard/AdminRouteOptimization";
 import AdminReports from "../pages/dashboard/AdminReports";
+import AdminSettings from "../pages/dashboard/AdminSettings";
 
 function AppRoutes() {
   return (
@@ -221,6 +222,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminSettings />
             </ProtectedRoute>
           }
         />

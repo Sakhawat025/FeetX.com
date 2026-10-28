@@ -4,6 +4,10 @@ const ACTIVE = ["CONFIRMED", "PICKED_UP", "OUT_FOR_DELIVERY"];
 const WAITING = ["PENDING", "CONFIRMED"];
 const GPS_MAX_AGE = 120000;
 const GPS_MAX_ACCURACY = 200;
+const {
+  getSettings,
+  assignmentTimes,
+} = require("../services/platformSettingsService");
 
 function fail(status, message) {
   throw Object.assign(new Error(message), { status });
@@ -71,6 +75,7 @@ function freshLocation(location) {
   const age = Date.now() - new Date(location.capturedAt).getTime();
 
   if (
+    !Number.isFinite(age) ||
     age < -10000 ||
     age > GPS_MAX_AGE ||
     !Number.isFinite(location.accuracy) ||
@@ -117,7 +122,8 @@ const parcelSelect = {
   createdAt: true,
 };
 
-async function recommendations(db, parcel) {
+async function recommendations(db, parcel, settings) {
+  settings = settings || (await getSettings(db));
   if (
     !coordinates(parcel.pickupLatitude, parcel.pickupLongitude)
   ) {
@@ -198,7 +204,15 @@ async function recommendations(db, parcel) {
 
     if (!user.status) reason = "Account disabled";
     else if (!user.isAvailable) reason = "Not available for assignments";
-    else if (!vehicle) reason = "No vehicle assigned";
+    else if (
+      jobs.length >= settings.maxActiveParcels
+    ) {
+      reason =
+        `Maximum ${settings.maxActiveParcels} active parcels reached`;
+    }
+    else if (!vehicle) {
+      reason = "No vehicle assigned";
+    }
     else if (vehicle.status === "MAINTENANCE") {
       reason = "Vehicle is in maintenance";
     } else if (
@@ -236,6 +250,16 @@ async function recommendations(db, parcel) {
     }
 
     const distance = distanceKm(location, pickup);
+    if (distance > settings.autoAssignmentRadiusKm) {
+      excluded.push({
+        id: user.id,
+        name: user.name,
+        reason:
+          `Outside ${settings.autoAssignmentRadiusKm} km assignment radius`,
+      });
+
+      continue;
+    }
     const ratingRow = ratingMap.get(user.id);
     const rating = ratingRow?._avg.rating ?? null;
     const reviewCount = ratingRow?._count.rating ?? 0;
@@ -347,20 +371,35 @@ exports.getDispatch = async (req, res) => {
 
 exports.assignRider = async (req, res) => {
   try {
-    const deliveryId = positiveId(req.body.deliveryId);
+    const deliveryId = positiveId(
+      req.params.id ?? req.body.deliveryId
+    );
+
     const riderId = positiveId(req.body.riderId);
+
+    if (
+      req.params.id &&
+      req.body.deliveryId !== undefined &&
+      positiveId(req.body.deliveryId) !== deliveryId
+    ) {
+      fail(400, "Delivery IDs do not match.");
+    }
 
     await prisma.$transaction(
       async (tx) => {
         await requireAdmin(tx, req);
 
-        // Fetch the delivery package to verify it exists and is unassigned
+        const settings = await getSettings(tx);
+
         const parcel = await tx.delivery.findUnique({
-          where: { id: deliveryId },
+          where: {
+            id: deliveryId,
+          },
           select: {
             ...parcelSelect,
             status: true,
             riderId: true,
+            customerId: true,
           },
         });
 
@@ -368,34 +407,96 @@ exports.assignRider = async (req, res) => {
           fail(404, "Parcel not found.");
         }
 
-        if (parcel.riderId !== null || !WAITING.includes(parcel.status)) {
-          fail(400, "Parcel is already assigned or processed.");
+        if (
+          parcel.riderId !== null ||
+          !WAITING.includes(parcel.status)
+        ) {
+          fail(
+            409,
+            "Parcel is already assigned or processed."
+          );
         }
 
-        // Fetch recommendations to validate if the rider is eligible
-        const { riders } = await recommendations(tx, parcel);
-        const eligibleRider = riders.find((r) => r.id === riderId);
+        const {
+          riders,
+          excluded,
+          blocker,
+        } = await recommendations(
+          tx,
+          parcel,
+          settings
+        );
 
-        if (!eligibleRider) {
-          fail(422, "Rider is ineligible or capacity limits exceeded.");
+        const rider = riders.find(
+          (item) => item.id === riderId
+        );
+
+        if (!rider) {
+          fail(
+            422,
+            blocker ||
+              excluded.find(
+                (item) => item.id === riderId
+              )?.reason ||
+              "Rider is not eligible."
+          );
         }
 
-        // Apply changes
-        await tx.delivery.update({
-          where: { id: deliveryId },
-          data: {
-            riderId: riderId,
-            status: "CONFIRMED", // Moves parcel safely within system bounds
+        const result = await tx.delivery.updateMany({
+          where: {
+            id: deliveryId,
+            riderId: null,
+            status: {
+              in: WAITING,
+            },
           },
+          data: {
+            riderId,
+            status: "CONFIRMED",
+
+            ...assignmentTimes(
+              parcel.priority,
+              settings
+            ),
+          },
+        });
+
+        if (result.count !== 1) {
+          fail(
+            409,
+            "Parcel changed. Refresh and retry."
+          );
+        }
+
+        await tx.notification.createMany({
+          data: [
+            {
+              userId: parcel.customerId,
+              title: "Rider Assigned",
+              message:
+                `${rider.name} has been assigned to parcel ${parcel.trackingId}.`,
+              type: "DELIVERY_ASSIGNED",
+            },
+            {
+              userId: riderId,
+              title: "New Delivery Assigned",
+              message:
+                `Parcel ${parcel.trackingId} has been assigned to you.`,
+              type: "DELIVERY_ASSIGNED",
+            },
+          ],
         });
       },
       {
-        isolationLevel: "RepeatableRead",
+        isolationLevel: "Serializable",
         timeout: 15000,
       }
     );
 
-    res.json({ success: true, message: "Rider successfully assigned." });
+    res.json({
+      success: true,
+      message: "Rider successfully assigned.",
+    });
   } catch (error) {
     handleError(res, error);
   }
