@@ -1,88 +1,179 @@
 import { useEffect, useState } from "react";
 import { getDailyDeliveryPerformance } from "../../../services/adminApi";
 
-function DailyDeliveryPerformance() {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+export default function DailyDeliveryPerformance() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        const loadPerformance = async () => {
-            try {
-                const result = await getDailyDeliveryPerformance();
-                setData(result);
-            } catch (error) {
-                console.error("Failed to load daily delivery performance:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadPerformance();
-    }, []);
+  useEffect(() => {
+    let active = true;
+    let timer;
 
-    const maxValue = Math.max(...data.map((item) => Math.max(item.delivered || 0, item.cancelled || 0)), 10);
+    async function loadPerformance() {
+      try {
+        const result = await getDailyDeliveryPerformance();
 
-    return (
-        <div className="w-full bg-white border border-orange-100 rounded-2xl shadow-sm p-5">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-base font-bold text-gray-900">Daily Delivery Performance</h2>
-                    <p className="text-xs text-gray-500 mt-1">Delivery activity for the last 7 days</p>
+        const invalid =
+          !Array.isArray(result) ||
+          result.length !== 7 ||
+          result.some(
+            (row) =>
+              !row ||
+              typeof row.day !== "string" ||
+              !Number.isInteger(row.delivered) ||
+              row.delivered < 0 ||
+              !Number.isInteger(row.cancelled) ||
+              row.cancelled < 0
+          );
+
+        if (invalid) {
+          throw new Error("Invalid performance data received.");
+        }
+
+        if (active) {
+          setData(result);
+          setError("");
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err.response?.data?.message ||
+              err.message ||
+              "Unable to load delivery performance."
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+          timer = window.setTimeout(loadPerformance, 30000);
+        }
+      }
+    }
+
+    loadPerformance();
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  const maxValue = Math.max(
+    1,
+    ...data.flatMap((item) => [
+      item.delivered,
+      item.cancelled,
+    ])
+  );
+
+  const total = data.reduce(
+    (sum, item) => sum + item.delivered + item.cancelled,
+    0
+  );
+
+  return (
+    <section className="w-full rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-bold text-gray-900">
+        Daily Delivery Performance
+      </h2>
+
+      <p className="mt-1 text-xs text-gray-500">
+        Delivery activity for the last 7 days.
+        Auto-refresh every 30 seconds.
+      </p>
+
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red-600">
+          {error}{" "}
+          {data.length > 0 && "Showing last loaded data. "}
+          Retrying automatically.
+        </p>
+      )}
+
+      {loading ? (
+        <div className="flex h-64 items-center justify-center text-sm text-gray-500">
+          Loading performance...
+        </div>
+      ) : data.length > 0 ? (
+        <>
+          <div className="mt-5 overflow-x-auto">
+            <div className="flex min-w-[420px] gap-3 border-b border-gray-100 px-2">
+              {data.map((item, index) => (
+                <div
+                  key={`${item.day}-${index}`}
+                  className="min-w-0 flex-1"
+                >
+                  <div
+                    className="flex items-end justify-center gap-1.5"
+                    style={{ height: 220 }}
+                  >
+                    {[
+                      {
+                        label: "Delivered",
+                        count: item.delivered,
+                        color: "bg-orange-600",
+                      },
+                      {
+                        label: "Cancelled",
+                        count: item.cancelled,
+                        color: "bg-orange-300",
+                      },
+                    ].map(({ label, count, color }) => {
+                      const height =
+                        count > 0
+                          ? Math.max(4, (count / maxValue) * 180)
+                          : 0;
+
+                      return (
+                        <div
+                          key={label}
+                          title={`${item.day}: ${label} ${count}`}
+                          aria-label={`${item.day}: ${label} ${count}`}
+                          className={`relative w-5 rounded-t-md transition-all duration-300 sm:w-7 ${
+                            count > 0 ? color : ""
+                          }`}
+                          style={{ height }}
+                        >
+                          <span className="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-xs font-semibold text-gray-600">
+                            {count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="py-3 text-center text-xs text-gray-500">
+                    {item.day}
+                  </p>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-center gap-8">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-sm bg-orange-600" />
+              <span className="text-xs text-gray-500">
+                Delivered
+              </span>
             </div>
 
-            {loading ? (
-                <div className="h-64 flex items-center justify-center text-sm text-gray-400">Loading performance...</div>
-            ) : (
-                <>
-                    <div className="mt-6 h-64 flex items-end gap-5 border-b border-gray-100 px-4">
-                        {data.map((item, index) => {
-                            const delivered = item.delivered || 0;
-                            const cancelled = item.cancelled || 0;
-                            const deliveredHeight = (delivered / maxValue) * 100;
-                            const cancelledHeight = (cancelled / maxValue) * 100;
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-sm bg-orange-300" />
+              <span className="text-xs text-gray-500">
+                Cancelled
+              </span>
+            </div>
+          </div>
 
-                            return (
-                                <div key={`${item.day}-${index}`} className="flex-1 h-full flex flex-col justify-end">
-                                    <div className="flex-1 flex items-end justify-center gap-1.5">
-                                        <div className="relative group">
-                                            <div
-                                                className="w-7 bg-orange-600 rounded-t-md transition-all duration-300"
-                                                style={{ height: delivered > 0 ? `${deliveredHeight}%` : "3px" }}
-                                            />
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap bg-gray-900 text-white text-xs rounded px-2 py-1">
-                                                Delivered: {delivered}
-                                            </div>
-                                        </div>
-                                        <div className="relative group">
-                                            <div
-                                                className="w-7 bg-orange-300 rounded-t-md transition-all duration-300"
-                                                style={{ height: cancelled > 0 ? `${cancelledHeight}%` : "3px" }}
-                                            />
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap bg-gray-900 text-white text-xs rounded px-2 py-1">
-                                                Cancelled: {cancelled}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-center text-xs text-gray-500 pt-3">{item.day}</div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="flex justify-center gap-8 mt-5">
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-sm bg-orange-600" />
-                            <span className="text-xs text-gray-500">Delivered</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-sm bg-orange-300" />
-                            <span className="text-xs text-gray-500">Cancelled</span>
-                        </div>
-                    </div>
-                </>
-            )}
-        </div>
-    );
+          {total === 0 && !error && (
+            <p className="mt-3 text-center text-sm text-gray-500">
+              No delivered or cancelled activity in this period.
+            </p>
+          )}
+        </>
+      ) : null}
+    </section>
+  );
 }
-
-export default DailyDeliveryPerformance;
