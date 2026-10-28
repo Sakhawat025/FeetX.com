@@ -15,7 +15,7 @@ function Navbar() {
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-orange-700">
-          FeetX
+          FleetX
         </Link>
 
         {/* Menu */}

@@ -24,7 +24,7 @@ function HowItWorks() {
           <span className="inline-block bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-semibold">
             Workflow
           </span>
-          <h2 className="mt-5 text-4xl lg:text-5xl font-extrabold text-gray-950">How FeetX Works</h2>
+          <h2 className="mt-5 text-4xl lg:text-5xl font-extrabold text-gray-950">How FleetX Works</h2>
           <p className="mt-5 text-gray-600">
             A simple intelligent workflow from parcel creation to successful delivery.
           </p>

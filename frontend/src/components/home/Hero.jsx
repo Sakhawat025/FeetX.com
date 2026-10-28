@@ -29,7 +29,7 @@ function Hero() {
           </h1>
 
           <p className="mt-6 text-lg text-gray-600 max-w-xl leading-relaxed">
-            FeetX helps logistics companies manage riders, optimize delivery routes and monitor fleet operations
+            FleetX helps logistics companies manage riders, optimize delivery routes and monitor fleet operations
             through an intelligent real-time platform.
           </p>
 

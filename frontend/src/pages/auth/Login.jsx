@@ -46,7 +46,7 @@ function Login() {
             <UserCircle size={30} />
           </div>
           <h1 className="mt-5 text-3xl font-bold">Welcome Back</h1>
-          <p className="mt-2 text-gray-500 text-sm">Login to your FeetX account</p>
+          <p className="mt-2 text-gray-500 text-sm">Login to your FleetX account</p>
         </div>
 
         <form onSubmit={handleLogin} className="mt-8 space-y-5">
